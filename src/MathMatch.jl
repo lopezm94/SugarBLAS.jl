@@ -10,6 +10,24 @@ _iscommutative{T<:Val}(::Type{T}) = false
 
 iscall(expr::Expr) = expr.head == :call
 
+permutations(r::Range) = permutations(collect(r))
+permutations(v::Vector) = @task permfactory(v)
+
+function permfactory{T}(v::Vector{T})
+    stack = Vector{Tuple{Vector{T}, Vector{T}}}()
+    push!(stack, (Vector{T}(), v))
+    while !isempty(stack)
+        state = pop!(stack)
+        taken = copy(state[1])
+        left = copy(state[2])
+        isempty(left) && (produce(taken); continue)
+        for i in 1:length(left)
+            new_state = (push!(copy(taken), left[i]), vcat(left[1:i-1],left[i+1:end]))
+            push!(stack, new_state)
+        end
+    end
+end
+
 function clear!(d::Dict)
     for key in keys(d)
         delete!(d, key)

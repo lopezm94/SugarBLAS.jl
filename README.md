@@ -1,7 +1,6 @@
 # SugarBLAS
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/JuliaLang/IterativeSolvers.jl/blob/master/LICENSE)
-[![Coverage Status](https://coveralls.io/repos/github/lopezm94/SugarBLAS.jl/badge.svg?branch=master)](https://coveralls.io/github/lopezm94/SugarBLAS.jl?branch=master)
 [![codecov](https://codecov.io/gh/lopezm94/SugarBLAS.jl/coverage.svg?branch=master)](https://codecov.io/gh/lopezm94/SugarBLAS.jl)
 [![Build Status](https://travis-ci.org/lopezm94/SugarBLAS.jl.svg?branch=master)](https://travis-ci.org/lopezm94/SugarBLAS.jl?branch=master)
 [![IterativeSolvers](http://pkg.julialang.org/badges/IterativeSolvers_0.4.svg)](http://pkg.julialang.org/?pkg=IterativeSolvers&ver=0.4)
@@ -41,7 +40,8 @@ Pkg.add("SugarBLAS")
 - [axpy!](#axpy!)
 - [copy!](#copy!)
 
-### scale
+
+### *scale*
 
 **Polynomials**
 
@@ -54,7 +54,8 @@ julia> macroexpand(:(@blas a*X))
 :(scale(a,X))
 ```
 
-### scale!
+
+### *scale!*
 
 **Polynomials**
 
@@ -68,7 +69,8 @@ julia> macroexpand(:(@blas! X *= a))
 :(scale!(a,X))
 ```
 
-### axpy!
+
+### *axpy!*
 
 **Polynomials**
 
@@ -87,7 +89,8 @@ julia> macroexpand(:(@blas! Y += a*X))
 :(Base.LinAlg.axpy!(a,X,Y))
 ```
 
-### copy!
+
+### *copy!*
 
 **Polynomials**
 
