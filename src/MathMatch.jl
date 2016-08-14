@@ -2,10 +2,6 @@ module MathMatch
 
 export @match
 
-#TODO: Replace errors for booleans, if 2 same keys have different value it doesnt match.
-
-iscall(expr::Expr) = expr.head == :call
-
 iscommutative(op::Expr) = iscommutative(op.args[1])
 iscommutative(op::Symbol) = _iscommutative(Val{op})
 
@@ -14,6 +10,24 @@ _iscommutative(::Type{Val{:(*)}}) = false
 _iscommutative(::Type{Val{:(-)}}) = false
 _iscommutative(::Type{Val{:(/)}}) = false
 _iscommutative{T<:Val}(::Type{T}) = false
+
+iscall(expr::Expr) = expr.head == :call
+
+function clear!(d::Dict)
+    for key in keys(d)
+        delete!(d, key)
+    end
+end
+
+#Overwrite d1
+#Returns false if successfull, true otherwise
+function conflictmerge!(d1::Dict, d2::Dict)
+    for key in keys(d2)
+        haskey(d1, key) && (d1[key] != d2[key]) && return true
+        d1[key] = d2[key]
+    end
+    false
+end
 
 function partialmatch(expr::Expr, formula::Expr)
     samehead = (expr.head == formula.head)
@@ -33,41 +47,43 @@ end
 function _match_args(::Type{Val{false}}, offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     for i in 1+offset:length(eargs)
-        match(symbols, eargs[i], margs[i])
+        d = Dict()
+        match(d, eargs[i], margs[i]) || return false
+        (conflict = conflictmerge!(symbols, d)) && return false
     end
+    true
 end
 function _match_args(::Type{Val{true}}, offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     n = length(eargs)-offset
     for perm in permutations(collect(1+offset:length(eargs)))
-        try
-            for i in 1:n
-                match(symbols, eargs[i+offset], margs[perm[i]])
-            end
-            return
-        catch
-            continue
+        success = true
+        d1, d2 = Dict(), Dict()
+        for i in 1:n
+            match(d2, eargs[i+offset], margs[perm[i]]) || (success=false; break)
+            (conflict=conflictmerge!(d1, d2)) && (success=false; break)
         end
+        success && (merge!(symbols, d1); return true)
     end
-    error("Can't match $expr with $formula")
+    false
 end
 
-match(symbols::Dict, expr, s::Symbol) = symbols[s] = expr
+match(symbols::Dict, expr, s::Symbol) = (symbols[s] = expr; true)
 function match(symbols::Dict, expr::Expr, formula::Expr)
-    partialmatch(expr, formula) || error("can't match $expr with $formula")
+    partialmatch(expr, formula) || return false
     match_args(symbols, expr, formula)
 end
-match(::Dict, expr, formula::Expr) = error("can't match $expr with $formula")
+match(::Dict, expr, formula::Expr) = false
 
 macro match(expr, formula)
     symbols = Dict{Symbol, Any}()
     matchto = "$formula"
     esc(quote
-        try
-            $match($symbols, $expr, parse($matchto))
+        $clear!($symbols)
+        if $match($symbols, $expr, parse($matchto))
             Nullable($symbols)
-        catch e
-            Nullable("In " * $matchto * " " * e.msg)
+        else
+            Nullable()
         end
     end)
 end
