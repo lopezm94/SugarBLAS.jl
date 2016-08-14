@@ -7,7 +7,7 @@
 `BLAS` functions are unaesthetic and annoying without good knowledge of the positional
 arguments. This package provides macros for `BLAS` functions representing polynomials.
 
-There are two main macros, `@blas` and `@blas!` depending whether and argument is
+There are two main macros, `@blas` and `@blas!` depending whether an argument is
 overwritten or not.
 
 The macros will output a function from `BASE` module, this allows defining
@@ -17,7 +17,7 @@ julia `BLAS` API, e.g. `copy!` is used instead of `BASE.LinAlg.BLAS.blascopy!`.
 For now the package supports few of the functions and not all of the parameters, the
 macros only receive the polynomial elements.
 
-*Note:* Commutative operators are supported (Only `+` is such operator).
+*Note:* Commutative operators are supported (Only `+` is such an operator).
 
 ```julia
 julia> macroexpand(:(@blas! Y = X + Y)) == macroexpand(:(@blas! Y = Y + X))
