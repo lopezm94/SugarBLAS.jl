@@ -3,8 +3,6 @@
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/JuliaLang/IterativeSolvers.jl/blob/master/LICENSE)
 [![codecov](https://codecov.io/gh/lopezm94/SugarBLAS.jl/coverage.svg?branch=master)](https://codecov.io/gh/lopezm94/SugarBLAS.jl)
 [![Build Status](https://travis-ci.org/lopezm94/SugarBLAS.jl.svg?branch=master)](https://travis-ci.org/lopezm94/SugarBLAS.jl?branch=master)
-[![IterativeSolvers](http://pkg.julialang.org/badges/IterativeSolvers_0.4.svg)](http://pkg.julialang.org/?pkg=IterativeSolvers&ver=0.4)
-[![IterativeSolvers](http://pkg.julialang.org/badges/IterativeSolvers_0.5.svg)](http://pkg.julialang.org/?pkg=IterativeSolvers&ver=0.5)
 
 `BLAS` functions are unaesthetic and annoying without good knowledge of the positional
 arguments. This package provides macros for `BLAS` functions representing polynomials.
