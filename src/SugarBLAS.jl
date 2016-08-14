@@ -16,8 +16,6 @@ end
 
 #Must be ordered from most to least especific formulas
 macro blas!(expr::Expr)
-    either = @match expr a*X
-    isempty(either) || (d=either.value; return esc(:(scale!($(d[:a]), $(d[:X])))))
     either = @match expr X = a*X
     isempty(either) || (d=either.value; return esc(:(scale!($(d[:a]), $(d[:X])))))
     either = @match expr X *= a
@@ -32,10 +30,15 @@ macro blas!(expr::Expr)
         d=either.value
         return esc(:(Base.LinAlg.axpy!($(d[:a]), $(d[:X]), $(d[:Y]))))
     end
-    either = @match expr a*X + Y
+    either = @match expr Y += X
     if !isempty(either)
         d=either.value
-        return esc(:(Base.LinAlg.axpy!($(d[:a]), $(d[:X]), $(d[:Y]))))
+        return esc(:(Base.LinAlg.axpy!(1.0, $(d[:X]), $(d[:Y]))))
+    end
+    either = @match expr Y = X + Y
+    if !isempty(either)
+        d=either.value
+        return esc(:(Base.LinAlg.axpy!(1.0, $(d[:X]), $(d[:Y]))))
     end
     either = @match expr X = Y
     isempty(either) || (d=either.value; return esc(:(copy!($(d[:X]), $(d[:Y])))))

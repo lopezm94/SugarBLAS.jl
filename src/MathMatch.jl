@@ -6,9 +6,6 @@ iscommutative(op::Expr) = iscommutative(op.args[1])
 iscommutative(op::Symbol) = _iscommutative(Val{op})
 
 _iscommutative(::Type{Val{:(+)}}) = true
-_iscommutative(::Type{Val{:(*)}}) = false
-_iscommutative(::Type{Val{:(-)}}) = false
-_iscommutative(::Type{Val{:(/)}}) = false
 _iscommutative{T<:Val}(::Type{T}) = false
 
 iscall(expr::Expr) = expr.head == :call
@@ -19,13 +16,11 @@ function clear!(d::Dict)
     end
 end
 
-#Overwrite d1
+#Overwrite d
 #Returns false if successfull, true otherwise
-function conflictmerge!(d1::Dict, d2::Dict)
-    for key in keys(d2)
-        haskey(d1, key) && (d1[key] != d2[key]) && return true
-        d1[key] = d2[key]
-    end
+function conflictadd!(d::Dict, s::Symbol, v)
+    haskey(d,s) && (d[s] != v) && return true
+    d[s] = v
     false
 end
 
@@ -47,28 +42,25 @@ end
 function _match_args(::Type{Val{false}}, offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     for i in 1+offset:length(eargs)
-        d = Dict()
-        match(d, eargs[i], margs[i]) || return false
-        (conflict = conflictmerge!(symbols, d)) && return false
+        match(symbols, eargs[i], margs[i]) || return false
     end
     true
 end
 function _match_args(::Type{Val{true}}, offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     n = length(eargs)-offset
-    for perm in permutations(collect(1+offset:length(eargs)))
+    for perm in permutations(1+offset:length(eargs))
         success = true
-        d1, d2 = Dict(), Dict()
+        d = copy(symbols)
         for i in 1:n
-            match(d2, eargs[i+offset], margs[perm[i]]) || (success=false; break)
-            (conflict=conflictmerge!(d1, d2)) && (success=false; break)
+            match(d, eargs[i+offset], margs[perm[i]]) || (success=false; break)
         end
-        success && (merge!(symbols, d1); return true)
+        success && (merge!(symbols, d); return true)
     end
     false
 end
 
-match(symbols::Dict, expr, s::Symbol) = (symbols[s] = expr; true)
+match(symbols::Dict, expr, s::Symbol) = !conflictadd!(symbols, s, expr)
 function match(symbols::Dict, expr::Expr, formula::Expr)
     partialmatch(expr, formula) || return false
     match_args(symbols, expr, formula)
