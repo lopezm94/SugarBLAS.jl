@@ -2,7 +2,11 @@ module MathMatch
 
 export @match
 
-iscommutative(op::Expr) = iscommutative(op.args[1])
+function iscommutative(op::Expr)
+    iscall(op) && return iscommutative(op.args[1])
+    isref(op) && return true
+    false
+end
 iscommutative(op::Symbol) = _iscommutative(Val{op})
 
 _iscommutative(::Type{Val{:(+)}}) = true
@@ -26,12 +30,6 @@ function permfactory{T}(v::Vector{T})
     end
 end
 
-function clear!(d::Dict)
-    for key in keys(d)
-        delete!(d, key)
-    end
-end
-
 #Overwrite d
 #Returns false if successfull, true otherwise
 function conflictadd!(d::Dict, s::Symbol, v)
@@ -44,19 +42,18 @@ function partialmatch(expr::Expr, formula::Expr)
     samehead = (expr.head == formula.head)
     samelen = length(expr.args) == length(formula.args)
     (samehead & samelen) || return false
-    _partialmatch(Val{iscall(expr)}, expr, formula)
+    true
 end
 
-_partialmatch(::Type{Val{false}}, expr::Expr, formula::Expr) = true
-_partialmatch(::Type{Val{true}}, expr::Expr, formula::Expr) = expr.args[1]==formula.args[1]
-
 function match_args(symbols::Dict, expr::Expr, formula::Expr)
-    offset = iscall(expr) ? 1 : 0
+    offset = (iscall(expr) | isref(expr)) ? 1 : 0
+    (!iscall(expr) | (expr.args[1] == formula.args[1])) || return false
     _match_args(Val{iscommutative(expr)}, offset, symbols, expr, formula)
 end
 
 function _match_args(::Type{Val{false}}, offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
+    (!isref(expr) | match(symbols, eargs[1], margs[1])) || return false
     for i in 1+offset:length(eargs)
         match(symbols, eargs[i], margs[i]) || return false
     end
@@ -65,6 +62,7 @@ end
 function _match_args(::Type{Val{true}}, offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     n = length(eargs)-offset
+    (!isref(expr) | match(symbols, eargs[1], margs[1])) || return false
     for perm in permutations(1+offset:length(eargs))
         success = true
         d = copy(symbols)
@@ -100,13 +98,23 @@ macro match(expr, formula)
     exec
 end
 
-getvars(::Any) = Set{Symbol}()
-getvars(s::Symbol) = Set{Symbol}([s])
-function getvars(expr::Expr)
-    start = iscall(expr) ? 2 : 1
-    union(map(getvars, expr.args[start:end])...)
+_getvars(::Any) = Set{Symbol}()
+_getvars(s::Symbol) = Set{Symbol}([s])
+function _getvars(expr::Expr)
+    start = (iscall(expr) | iskw(expr)) ? 2 : 1
+    union(map(_getvars, expr.args[start:end])...)
 end
 
+getvars(expr::Symbol) = _getvars(expr)
+getvars(expr::Expr) = _getvars(unkeyword!(expr))
+
+function unkeyword!(expr::Expr)
+    iskw(expr) && (expr.head = :(=))
+    expr
+end
+
+iskw(expr::Expr) = expr.head == :kw
+isref(expr::Expr) = expr.head == :ref
 iscall(expr::Expr) = expr.head == :call
 
 end
