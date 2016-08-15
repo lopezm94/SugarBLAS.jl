@@ -1,47 +1,26 @@
 __precompile__(true)
 module SugarBLAS
 
-export @blas, @blas!
+export @blas!
 
 include("MathMatch.jl")
 using .MathMatch
 
 isempty(nl::Nullable) = nl.isnull
 
-macro blas(expr::Expr)
-    either = @match expr a*X
-    isempty(either) || (d=either.value; return esc(:(scale($(d[:a]), $(d[:X])))))
-    error("No match found")
+function expand(expr::Expr)
+    @match(expr, A += B) && return :($A = $A + $B)
+    expr
 end
 
 #Must be ordered from most to least especific formulas
 macro blas!(expr::Expr)
-    either = @match expr X = a*X
-    isempty(either) || (d=either.value; return esc(:(scale!($(d[:a]), $(d[:X])))))
-    either = @match expr X *= a
-    isempty(either) || (d=either.value; return esc(:(scale!($(d[:a]), $(d[:X])))))
-    either = @match expr Y = a*X + Y
-    if !isempty(either)
-        d=either.value
-        return esc(:(Base.LinAlg.axpy!($(d[:a]), $(d[:X]), $(d[:Y]))))
-    end
-    either = @match expr Y += a*X
-    if !isempty(either)
-        d=either.value
-        return esc(:(Base.LinAlg.axpy!($(d[:a]), $(d[:X]), $(d[:Y]))))
-    end
-    either = @match expr Y += X
-    if !isempty(either)
-        d=either.value
-        return esc(:(Base.LinAlg.axpy!(1.0, $(d[:X]), $(d[:Y]))))
-    end
-    either = @match expr Y = X + Y
-    if !isempty(either)
-        d=either.value
-        return esc(:(Base.LinAlg.axpy!(1.0, $(d[:X]), $(d[:Y]))))
-    end
-    either = @match expr X = Y
-    isempty(either) || (d=either.value; return esc(:(copy!($(d[:X]), $(d[:Y])))))
+    expr = expand(expr)
+    @match(expr, X *= a) && return esc(:(scale!($a, $X)))
+    @match(expr, X = a*X) && return esc(:(scale!($a, $X)))
+    @match(expr, Y = a*X + Y) && return esc(:(Base.LinAlg.axpy!($a, $X, $Y)))
+    @match(expr, Y = X + Y) && return esc(:(Base.LinAlg.axpy!(1.0, $X, $Y)))
+    @match(expr, X = Y) && return esc(:(copy!($X, $Y)))
     error("No match found")
 end
 

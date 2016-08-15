@@ -8,8 +8,6 @@ iscommutative(op::Symbol) = _iscommutative(Val{op})
 _iscommutative(::Type{Val{:(+)}}) = true
 _iscommutative{T<:Val}(::Type{T}) = false
 
-iscall(expr::Expr) = expr.head == :call
-
 permutations(r::Range) = permutations(collect(r))
 permutations(v::Vector) = @task permfactory(v)
 
@@ -78,6 +76,7 @@ function _match_args(::Type{Val{true}}, offset, symbols, expr, formula)
     false
 end
 
+match(::Dict, expr, formula) = expr == formula
 match(symbols::Dict, expr, s::Symbol) = !conflictadd!(symbols, s, expr)
 function match(symbols::Dict, expr::Expr, formula::Expr)
     partialmatch(expr, formula) || return false
@@ -86,16 +85,28 @@ end
 match(::Dict, expr, formula::Expr) = false
 
 macro match(expr, formula)
-    symbols = Dict{Symbol, Any}()
-    matchto = "$formula"
-    esc(quote
-        $clear!($symbols)
-        if $match($symbols, $expr, parse($matchto))
-            Nullable($symbols)
-        else
-            Nullable()
-        end
-    end)
+    vars = getvars(formula)
+    aux1 = "$formula"
+    exec = quote end
+    push!(exec.args, :(symbols = Dict{Symbol, Any}()))
+    aux3 = esc(:($expr))
+    push!(exec.args, :(success = $match(symbols, $aux3, parse($aux1))))
+    for var in vars
+        aux2 = "$var"
+        aux3 = esc(:($var))
+        push!(exec.args, :(success && ($aux3 = symbols[parse($aux2)])))
+    end
+    push!(exec.args, :(success))
+    exec
 end
+
+getvars(::Any) = Set{Symbol}()
+getvars(s::Symbol) = Set{Symbol}([s])
+function getvars(expr::Expr)
+    start = iscall(expr) ? 2 : 1
+    union(map(getvars, expr.args[start:end])...)
+end
+
+iscall(expr::Expr) = expr.head == :call
 
 end
