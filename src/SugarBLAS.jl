@@ -1,6 +1,8 @@
 __precompile__(true)
 module SugarBLAS
 
+import Base: copy
+
 export  @blas!
 export  @scale!, @axpy!, @copy!, @ger!, @syr!, @syrk!,
         @her!, @herk!, @gbmv!, @sbmv!, @gemm!, @gemv!
@@ -34,6 +36,8 @@ function absAST(ast)
         Expr(:call, :(-), ast)
     end
 end
+
+copy(s::Symbol) = s
 
 ###########
 # Mutable #
@@ -130,14 +134,6 @@ macro gbmv!(expr::Expr)
         @match(Y, A[kl:ku,h=m])
         kl = absAST(kl)
         @place Base.LinAlg.BLAS.gbmv!(trans,m,kl,ku,alpha,A,x,beta,y)
-    end
-    error("No match found")
-end
-
-macro sbmv!(expr::Expr)
-    if @match(expr, y = alpha*A[0:k,uplo]*x + beta*y)
-        c = char(uplo)
-        @place Base.LinAlg.BLAS.sbmv!(c,k,alpha,A,x,beta,y)
     end
     error("No match found")
 end
