@@ -6,9 +6,7 @@
 
 `BLAS` functions are unaesthetic and annoying without good knowledge of the positional
 arguments. This package provides macros for `BLAS` functions representing polynomials.
-
-There are two main macros, `@blas` and `@blas!` depending whether an argument is
-overwritten or not.
+The main macro of the package is `@blas!`.
 
 The macros will output a function from `BASE` module, this allows defining
 new behavior for custom types. Note that the output won't necessarily belong to the
@@ -17,18 +15,60 @@ julia `BLAS` API, e.g. `copy!` is used instead of `BASE.LinAlg.BLAS.blascopy!`.
 For now the package supports few of the functions and not all of the parameters, the
 macros only receive the polynomial elements.
 
-*Note:* Commutative operators are supported (Only `+` is such an operator).
-
-```julia
-julia> macroexpand(:(@blas! Y = X + Y)) == macroexpand(:(@blas! Y = Y + X))
-true
-```
 
 ## Installing
 
 To install the package, use the following command inside Julia's REPL:
 ```julia
 Pkg.add("SugarBLAS")
+```
+
+## Usage
+
+`@blas!` matches the expression and decides which function to call. As long as
+it is correctly parenthesized putting more variables won't be an issue.
+
+```julia
+julia> macroexpand(:(@blas! Y = (a*b +c)*(X*Z) + Y))
+:(Base.LinAlg.axpy!(a * b + c,X * Z,Y))
+
+julia> macroexpand(:(@blas! X = (a+c)*X))
+:(scale!(a + c,X))
+```
+
+When doing this just imagine the BLAS expression.
+
+```julia
+Y = a*X + Y
+->
+a := (a*b +c); X := (X*Z)
+->
+Y = (a*b +c)*(X*Z) + Y
+```
+
+### Commutativity
+
+`+` is assumed as the only commutative operator, it is important to note here
+that `*` is not treated as commutative and therefore some expressions will lead
+to errors.
+
+```julia
+julia> a = 2.3;
+
+julia> X = rand(10,10);
+
+julia> Y = rand(10,10);
+
+julia> @blas! Y += X*a
+ERROR: MethodError: `axpy!` has no method matching axpy!(::Array{Float64,2}, ::Float64, ::Array{Float64,2})
+```
+
+The package assumes types by its position in the multiplication, this doesn't happen
+with addition and that's why it conserves its property.
+
+```julia
+julia> macroexpand(:(@blas! Y = X + Y)) == macroexpand(:(@blas! Y = Y + X))
+true
 ```
 
 ## Functions

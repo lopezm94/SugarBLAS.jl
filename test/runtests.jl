@@ -1,9 +1,6 @@
 using SugarBLAS
 using Base.Test
 
-#scale
-@test macroexpand(:(@blas a*X)) == :(scale(a, X))
-
 #scale!
 @test macroexpand(:(@blas! X *= a)) == :(scale!(a, X))
 @test macroexpand(:(@blas! X = a*X)) == :(scale!(a, X))
