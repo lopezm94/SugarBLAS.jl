@@ -2,6 +2,10 @@ module Match
 
 export @match
 
+iskw(expr::Expr) = expr.head == :kw
+isref(expr::Expr) = expr.head == :ref
+iscall(expr::Expr) = expr.head == :call
+
 function iscommutative(op::Expr)
     iscall(op) && return iscommutative(op.args[1])
     isref(op) && return true
@@ -112,9 +116,5 @@ function unkeyword!(expr::Expr)
     iskw(expr) && (expr.head = :(=))
     expr
 end
-
-iskw(expr::Expr) = expr.head == :kw
-isref(expr::Expr) = expr.head == :ref
-iscall(expr::Expr) = expr.head == :call
 
 end

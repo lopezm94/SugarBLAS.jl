@@ -36,6 +36,8 @@ using Base.Test
 @test macroexpand(:(@syr! A[:L] = alpha*x*x.' + A)) == :(Base.LinAlg.BLAS.syr!('L',alpha,x,A))
 
 #syrk!
+@test macroexpand(:(@syrk! C[:U] = alpha*A*A.' + C)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,1.0,C))
+@test macroexpand(:(@syrk! C[:U] = C + alpha*A.'*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',alpha,A,1.0,C))
 @test macroexpand(:(@syrk! C[:U] = alpha*A*A.' + beta*C)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,beta,C))
 @test macroexpand(:(@syrk! C[:U] = alpha*A*A.' + beta*C)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,beta,C))
 @test macroexpand(:(@syrk! C[:L] = alpha*A.'*A + beta*C)) == :(Base.LinAlg.BLAS.syrk!('L','T',alpha,A,beta,C))
@@ -48,29 +50,39 @@ using Base.Test
 @test macroexpand(:(@her! A[:L] += alpha*x*x')) == :(Base.LinAlg.BLAS.her!('L',alpha,x,A))
 
 #herk!
+@test macroexpand(:(@herk! C[:U] = alpha*A*A' + C)) == :(Base.LinAlg.BLAS.herk!('U','N',alpha,A,1.0,C))
+@test macroexpand(:(@herk! C[:L] = C + alpha*A'*A)) == :(Base.LinAlg.BLAS.herk!('L','T',alpha,A,1.0,C))
 @test macroexpand(:(@herk! C[:U] = alpha*A*A' + beta*C)) == :(Base.LinAlg.BLAS.herk!('U','N',alpha,A,beta,C))
 @test macroexpand(:(@herk! C[:U] = alpha*A*A' + beta*C)) == :(Base.LinAlg.BLAS.herk!('U','N',alpha,A,beta,C))
 @test macroexpand(:(@herk! C[:L] = alpha*A'*A + beta*C)) == :(Base.LinAlg.BLAS.herk!('L','T',alpha,A,beta,C))
 @test macroexpand(:(@herk! C[:L] = alpha*A'*A + beta*C)) == :(Base.LinAlg.BLAS.herk!('L','T',alpha,A,beta,C))
 
 #gbmv!
+@test macroexpand(:(@gbmv! y = alpha*A[0:ku,h=2]*x + y)) == :(Base.LinAlg.BLAS.gbmv!('N',2,0,ku,alpha,A,x,1.0,y))
+@test macroexpand(:(@gbmv! y = y + alpha*A[h=m,-kl:ku]*x)) == :(Base.LinAlg.BLAS.gbmv!('N',m,kl,ku,alpha,A,x,1.0,y))
 @test macroexpand(:(@gbmv! y = alpha*A[0:ku,h=2]*x + beta*y)) == :(Base.LinAlg.BLAS.gbmv!('N',2,0,ku,alpha,A,x,beta,y))
 @test macroexpand(:(@gbmv! y = alpha*A[h=m,-kl:ku]*x + beta*y)) == :(Base.LinAlg.BLAS.gbmv!('N',m,kl,ku,alpha,A,x,beta,y))
 @test macroexpand(:(@gbmv! y = alpha*A[h=2, 0:ku]'*x + beta*y)) == :(Base.LinAlg.BLAS.gbmv!('T',2,0,ku,alpha,A,x,beta,y))
 @test macroexpand(:(@gbmv! y = alpha*A[kl:ku, h=m]'*x + beta*y)) == :(Base.LinAlg.BLAS.gbmv!('T',m,-kl,ku,alpha,A,x,beta,y))
 
 #sbmv!
+@test macroexpand(:(@sbmv! y = alpha*A[:U,0:k]*x + y)) == :(Base.LinAlg.BLAS.sbmv!('U',k,alpha,A,x,1.0,y))
+@test macroexpand(:(@sbmv! y = y + alpha*A[0:k,:L]*x)) == :(Base.LinAlg.BLAS.sbmv!('L',k,alpha,A,x,1.0,y))
 @test macroexpand(:(@sbmv! y = alpha*A[:U,0:k]*x + beta*y)) == :(Base.LinAlg.BLAS.sbmv!('U',k,alpha,A,x,beta,y))
 @test macroexpand(:(@sbmv! y = beta*y + alpha*A[0:k,:U]*x)) == :(Base.LinAlg.BLAS.sbmv!('U',k,alpha,A,x,beta,y))
 @test macroexpand(:(@sbmv! y = alpha*A[:L,0:k]*x + beta*y)) == :(Base.LinAlg.BLAS.sbmv!('L',k,alpha,A,x,beta,y))
 @test macroexpand(:(@sbmv! y = beta*y + alpha*A[0:k,:L]*x)) == :(Base.LinAlg.BLAS.sbmv!('L',k,alpha,A,x,beta,y))
 
 #gemm!
+@test macroexpand(:(@gemm! C = alpha*A*B + C)) == :(Base.LinAlg.BLAS.gemm!('N','N',alpha,A,B,1.0,C))
+@test macroexpand(:(@gemm! C = C + 1.5*A*B')) == :(Base.LinAlg.BLAS.gemm!('N','T',1.5,A,B,1.0,C))
 @test macroexpand(:(@gemm! C = alpha*A*B + beta*C)) == :(Base.LinAlg.BLAS.gemm!('N','N',alpha,A,B,beta,C))
 @test macroexpand(:(@gemm! C = beta*C + 1.5*A*B')) == :(Base.LinAlg.BLAS.gemm!('N','T',1.5,A,B,beta,C))
 @test macroexpand(:(@gemm! C = alpha*A'*B + beta*C)) == :(Base.LinAlg.BLAS.gemm!('T','N',alpha,A,B,beta,C))
 @test macroexpand(:(@gemm! C = 3.4*C + alpha*A'*B')) == :(Base.LinAlg.BLAS.gemm!('T','T',alpha,A,B,3.4,C))
 
 #gemv!
+@test macroexpand(:(@gemv! y = alpha*A*x + y)) == :(Base.LinAlg.BLAS.gemv!('N',alpha,A,x,1.0,y))
+@test macroexpand(:(@gemv! y = y + 1.5*A'*x)) == :(Base.LinAlg.BLAS.gemv!('T',1.5,A,x,1.0,y))
 @test macroexpand(:(@gemv! y = alpha*A*x + beta*y)) == :(Base.LinAlg.BLAS.gemv!('N',alpha,A,x,beta,y))
 @test macroexpand(:(@gemv! y = beta*y + 1.5*A'*x)) == :(Base.LinAlg.BLAS.gemv!('T',1.5,A,x,beta,y))
