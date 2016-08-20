@@ -7,8 +7,8 @@ export  @blas!
 export  @scale!, @axpy!, @copy!, @ger!, @syr!, @syrk!,
         @her!, @herk!, @gbmv!, @sbmv!, @gemm!, @gemv!
 
-include("MathMatch.jl")
-using .MathMatch
+include("Match/Match.jl")
+using .Match
 
 char(s::Symbol) = string(s)[1]
 function char(expr::Expr)

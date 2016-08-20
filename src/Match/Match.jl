@@ -1,4 +1,4 @@
-module MathMatch
+module Match
 
 export @match
 
