@@ -162,3 +162,17 @@ using Base.Test
 @test macroexpand(:(@symm! C[:L] = C + alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,1.0,C))
 @test macroexpand(:(@symm! C[:U] = 1.5*A*B[:symm] + C)) == :(Base.LinAlg.BLAS.symm!('R','U',1.5,A,B,1.0,C))
 @test macroexpand(:(@symm! C[:L] = beta*C + alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,beta,C))
+
+#symv!
+@test macroexpand(:(@symv! y -= alpha*A[:U]*x)) == :(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,1.0,y))
+@test macroexpand(:(@symv! y -= 1.5*A[:L]*x)) == :(Base.LinAlg.BLAS.symv!('L',-1.5,A,x,1.0,y))
+@test macroexpand(:(@symv! y = y - alpha*A[:U]*x)) == :(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,1.0,y))
+@test macroexpand(:(@symv! y = y - 1.5*A[:L]*x)) == :(Base.LinAlg.BLAS.symv!('L',-1.5,A,x,1.0,y))
+@test macroexpand(:(@symv! y = beta*y - alpha*A[:U]*x)) == :(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,beta,y))
+@test macroexpand(:(@symv! y = beta*y - 1.5*A[:L]*x)) == :(Base.LinAlg.BLAS.symv!('L',-1.5,A,x,beta,y))
+@test macroexpand(:(@symv! y += alpha*A[:U]*x)) == :(Base.LinAlg.BLAS.symv!('U',alpha,A,x,1.0,y))
+@test macroexpand(:(@symv! y += 1.5*A[:L]*x)) == :(Base.LinAlg.BLAS.symv!('L',1.5,A,x,1.0,y))
+@test macroexpand(:(@symv! y = alpha*A[:U]*x + y)) == :(Base.LinAlg.BLAS.symv!('U',alpha,A,x,1.0,y))
+@test macroexpand(:(@symv! y = y + 1.5*A[:L]*x)) == :(Base.LinAlg.BLAS.symv!('L',1.5,A,x,1.0,y))
+@test macroexpand(:(@symv! y = alpha*A[:U]*x + beta*y)) == :(Base.LinAlg.BLAS.symv!('U',alpha,A,x,beta,y))
+@test macroexpand(:(@symv! y = beta*y + 1.5*A[:L]*x)) == :(Base.LinAlg.BLAS.symv!('L',1.5,A,x,beta,y))

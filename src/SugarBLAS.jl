@@ -4,7 +4,7 @@ module SugarBLAS
 export  @blas!
 export  @scale!, @axpy!, @copy!, @ger!, @syr!, @syrk!,
         @her!, @herk!, @gbmv!, @sbmv!, @gemm!, @gemv!,
-        @symm!
+        @symm!, @symv!
 
 include("Match/Match.jl")
 using .Match
@@ -298,6 +298,26 @@ macro symm!(expr::Expr)
             return @call Base.LinAlg.BLAS.symm!(side,c,-alpha,A,B,1.0,C)
         elseif @match(D, beta*E) && ((E == C) | (@match(E, K[uplo]) && (K == C)))
             return @call Base.LinAlg.BLAS.symm!(side,c,-alpha,A,B,beta,C)
+        end
+    end
+    error("No match found")
+end
+
+macro symv!(expr::Expr)
+    expr = expand(expr)
+    if @match(expr, y = alpha*A[uplo]*x + w)
+        c = char(uplo)
+        if (w == y)
+            return @call Base.LinAlg.BLAS.symv!(c,alpha,A,x,1.0,y)
+        elseif @match(w, beta*u) && (u == y)
+            return @call Base.LinAlg.BLAS.symv!(c,alpha,A,x,beta,y)
+        end
+    elseif @match(expr, y = w - alpha*A[uplo]*x)
+        c = char(uplo)
+        if (w == y)
+            return @call Base.LinAlg.BLAS.symv!(c,-alpha,A,x,1.0,y)
+        elseif @match(w, beta*u) && (u == y)
+            return @call Base.LinAlg.BLAS.symv!(c,-alpha,A,x,beta,y)
         end
     end
     error("No match found")
