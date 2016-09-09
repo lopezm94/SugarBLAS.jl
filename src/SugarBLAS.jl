@@ -50,8 +50,8 @@ macro call(expr::Expr)
     esc(:(esc($(wrap(expr)))))
 end
 
-macro switch(expr::Expr)
-    (expr.head == :block) || error("@switch statement must be followed by `begin ... end`")
+macro case(expr::Expr)
+    (expr.head == :block) || error("@case statement must be followed by `begin ... end`")
     lines = filter(expr::Expr -> expr.head != :line, expr.args)
     failproof(s) = s
     failproof(s::Char) = string("'",s,"'")
@@ -75,7 +75,7 @@ end
 #Must be ordered from most to least especific formulas
 macro blas!(expr::Expr)
     expr = expand(expr)
-    @switch begin
+    @case begin
         @match(expr, X *= a)        => @call scale!(a,X)
         @match(expr, X = a*X)       => @call scale!(a,X)
         @match(expr, Y = Y - a*X)   => @call Base.LinAlg.axpy!(-a,X,Y)
@@ -88,14 +88,14 @@ macro blas!(expr::Expr)
 end
 
 macro copy!(expr::Expr)
-    @switch begin
+    @case begin
         @match(expr, X = Y) => @call copy!(X,Y)
         otherwise           => error("No match found")
     end
 end
 
 macro scale!(expr::Expr)
-    @switch begin
+    @case begin
         @match(expr, X *= a)    => @call scale!(a,X)
         @match(expr, X = a*X)   => @call scale!(a,X)
         otherwise               => error("No match found")
@@ -104,7 +104,7 @@ end
 
 macro axpy!(expr::Expr)
     expr = expand(expr)
-    @switch begin
+    @case begin
         @match(expr, Y = Y - a*X)   => @call(Base.LinAlg.axpy!(-a,X,Y))
         @match(expr, Y = Y - X)     => @call Base.LinAlg.axpy!(-1.0,X,Y)
         @match(expr, Y = a*X + Y)   => @call Base.LinAlg.axpy!(a,X,Y)
@@ -115,7 +115,7 @@ end
 
 macro ger!(expr::Expr)
     expr = expand(expr)
-    f = @switch begin
+    f = @case begin
         @match(expr, A = alpha*x*y' + A)    => identity
         @match(expr, A = A - alpha*x*y')    => (-)
         otherwise                           => error("No match found")
@@ -127,7 +127,7 @@ macro syr!(expr::Expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
     c = char(uplo)
-    f = @switch begin
+    f = @case begin
         @match(right, alpha*x*x.' + Y)  => identity
         @match(right, Y - alpha*x*x.')  => (-)
         otherwise                       => error("No match found")
@@ -140,12 +140,12 @@ macro syrk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
     c = char(uplo)
-    f = @switch begin
+    f = @case begin
         @match(right, alpha*X*Y + D)    => identity
         @match(right, D - alpha*X*Y)    => (-)
         otherwise                       => error("No match found")
     end
-    trans = @switch begin
+    trans = @case begin
         @match(X, A.') && (Y == A)  => 'T'
         @match(Y, A.') && (X == A)  => 'N'
         otherwise                   => error("No match found")
@@ -159,7 +159,7 @@ macro her!(expr::Expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
     c = char(uplo)
-    f = @switch begin
+    f = @case begin
         @match(right, alpha*x*x' + Y)   => identity
         @match(right, Y - alpha*x*x')   => (-)
         otherwise                       => error("No match found")
@@ -172,12 +172,12 @@ macro herk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
     c = char(uplo)
-    f = @switch begin #Right hand side must match one of these
+    f = @case begin #Right hand side must match one of these
         @match(right, alpha*X*Y + D)    => identity
         @match(right, D - alpha*X*Y)    => (-)
         otherwise                       => error("No match found")
     end
-    trans = @switch begin
+    trans = @case begin
         @match(X, A') && (Y == A)   =>  'T'
         @match(Y, A') && (X == A)   =>  'N'
         otherwise                   =>  error("No match found")
@@ -190,7 +190,7 @@ end
 macro gbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @switch begin #Right hand side must match one of these
+    f = @case begin #Right hand side must match one of these
         @match(right, alpha*Y*x + w)    => identity
         @match(right, w - alpha*Y*x)    => (-)
         otherwise                       => error("No match found")
@@ -205,7 +205,7 @@ end
 macro sbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @switch begin #Right hand side must match one of these
+    f = @case begin #Right hand side must match one of these
         @match(right, alpha*A[0:k,uplo]*x + w)  => identity
         @match(right, w - alpha*A[0:k,uplo]*x)  => (-)
         otherwise                               => error("No match found")
@@ -219,7 +219,7 @@ end
 macro gemm!(expr::Expr)
     expr = expand(expr)
     @match(expr, C = right) || error("No match found")
-    f = @switch begin #Right hand side must match one of these
+    f = @case begin #Right hand side must match one of these
         @match(right, alpha*A*B + D)    => identity
         @match(right, D - alpha*A*B)    => (-)
         otherwise                       => error("No match found")
@@ -234,7 +234,7 @@ end
 macro gemv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @switch begin #Right hand side must match one of these
+    f = @case begin #Right hand side must match one of these
         @match(right, alpha*A*x + w)  => identity
         @match(right, w - alpha*A*x)  => (-)
         otherwise                         => error("No match found")
@@ -248,13 +248,13 @@ end
 macro symm!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
-    f = @switch begin #Right hand side must match one of these
+    f = @case begin #Right hand side must match one of these
         @match(right, alpha*A*B + D)    => identity
         @match(right, D - alpha*A*B)    => (-)
         otherwise                       => error("No match found")
     end
     c = char(uplo)
-    side = @switch begin
+    side = @case begin
         @match(A, A[symm]) && (symm.args[1] == :symm)   => 'L'
         @match(B, B[symm]) && (symm.args[1] == :symm)   => 'R'
         otherwise                                       => error("No match found")
@@ -267,7 +267,7 @@ end
 macro symv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @switch begin #Right hand side must match one of these
+    f = @case begin #Right hand side must match one of these
         @match(right, alpha*A[uplo]*x + w)  => identity
         @match(right, w - alpha*A[uplo]*x)  => (-)
         otherwise                         => error("No match found")
