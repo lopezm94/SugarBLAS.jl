@@ -6,9 +6,6 @@ Syntactic sugar for BLAS polynomials.
 module SugarBLAS
 
 export  @blas!
-export  @scale!, @axpy!, @copy!, @ger!, @syr!, @syrk, @syrk!,
-        @her!, @herk, @herk!, @gbmv, @gbmv!, @sbmv, @sbmv!,
-        @gemm, @gemm!, @gemv, @gemv!, @symm, @symm!, @symv, @symv!
 
 include("Match/Match.jl")
 using .Match
