@@ -2,9 +2,9 @@ __precompile__(true)
 module SugarBLAS
 
 export  @blas!
-export  @scale!, @axpy!, @copy!, @ger!, @syr!, @syrk!,
-        @her!, @herk!, @gbmv!, @sbmv!, @gemm!, @gemv!,
-        @symm!, @symv!
+export  @scale!, @axpy!, @copy!, @ger!, @syr!, @syrk, @syrk!,
+        @her!, @herk, @herk!, @gbmv, @gbmv!, @sbmv, @sbmv!,
+        @gemm, @gemm!, @gemv, @gemv!, @symm, @symm!, @symv, @symv!
 
 include("Match/Match.jl")
 using .Match
@@ -26,6 +26,14 @@ substracts(expr) = false
 substracts(expr::Expr) = (expr.head == :call) & (expr.args[1] == :-)
 
 isempty(nl::Nullable) = nl.isnull
+
+function kwargs_to_dict(kwargs::Tuple)
+    dict = Dict()
+    for kw in kwargs
+        dict[kw.args[1]] = kw.args[2]
+    end
+    dict
+end
 
 wrap(expr::Symbol) = QuoteNode(expr)
 function wrap(expr::Expr)
@@ -125,6 +133,21 @@ macro syr!(expr::Expr)
     @call Base.LinAlg.BLAS.syr!(uplo,f(alpha),x,A)
 end
 
+macro syrk(expr::Expr, kwargs...)
+    kwargs = kwargs_to_dict(kwargs)
+    uplo = kwargs[:uplo]
+    f = @case begin
+        @match(expr, alpha*X*Y) => identity
+        otherwise               => error("No match found")
+    end
+    trans = @case begin
+        @match(X, A.') && (Y == A)  => 'T'
+        @match(Y, A.') && (X == A)  => 'N'
+        otherwise                   => error("No match found")
+    end
+    @call Base.LinAlg.BLAS.syrk(uplo,trans,f(alpha),A)
+end
+
 macro syrk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
@@ -155,6 +178,18 @@ macro her!(expr::Expr)
     @call Base.LinAlg.BLAS.her!(uplo,f(alpha),x,A)
 end
 
+macro herk(expr::Expr, kwargs...)
+    kwargs = kwargs_to_dict(kwargs)
+    uplo = kwargs[:uplo]
+    @match(expr, alpha*X*Y) || error("No match found")
+    trans = @case begin
+        @match(X, A') && (Y == A)   =>  'T'
+        @match(Y, A') && (X == A)   =>  'N'
+        otherwise                   =>  error("No match found")
+    end
+    @call Base.LinAlg.BLAS.herk(uplo,trans,alpha,A)
+end
+
 macro herk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
@@ -173,6 +208,13 @@ macro herk!(expr::Expr)
     @call Base.LinAlg.BLAS.herk!(uplo,trans,f(alpha),A,beta,C)
 end
 
+macro gbmv(expr::Expr)
+    @match(expr, alpha*Y*x) || error("No match found")
+    trans = @match(Y, Y') ? 'T' : 'N'
+    @match(Y, A[kl:ku,h=m])
+    @call Base.LinAlg.BLAS.gbmv(trans,m,abs(kl),ku,alpha,A,x)
+end
+
 macro gbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
@@ -188,6 +230,14 @@ macro gbmv!(expr::Expr)
     @call Base.LinAlg.BLAS.gbmv!(trans,m,abs(kl),ku,f(alpha),A,x,beta,y)
 end
 
+macro sbmv(expr::Expr)
+    @case begin
+        @match(expr, alpha*A[0:k,uplo]*x)   => @call Base.LinAlg.BLAS.sbmv(uplo,k,alpha,A,x)
+        @match(expr, A[0:k,uplo]*x)         => @call Base.LinAlg.BLAS.sbmv(uplo,k,A,x)
+        otherwise                           => error("No match found")
+    end
+end
+
 macro sbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
@@ -199,6 +249,20 @@ macro sbmv!(expr::Expr)
     @match(w, beta*w) || (beta = 1.0)
     (@match(w, w[crap]) && (y == w)) || (y == w) || error("No match found")
     @call Base.LinAlg.BLAS.sbmv!(uplo,k,f(alpha),A,x,beta,y)
+end
+
+macro gemm(expr::Expr)
+    if @match(expr, alpha*A*B)
+        tA = @match(A, A') ? 'T' : 'N'
+        tB = @match(B, B') ? 'T' : 'N'
+        @call Base.LinAlg.BLAS.gemm(tA,tB,alpha,A,B)
+    elseif @match(expr, A*B)
+        tA = @match(A, A') ? 'T' : 'N'
+        tB = @match(B, B') ? 'T' : 'N'
+        @call Base.LinAlg.BLAS.gemm(tA,tB,A,B)
+    else
+        error("No match found")
+    end
 end
 
 macro gemm!(expr::Expr)
@@ -216,6 +280,18 @@ macro gemm!(expr::Expr)
     @call Base.LinAlg.BLAS.gemm!(tA,tB,f(alpha),A,B,beta,C)
 end
 
+macro gemv(expr::Expr)
+    if @match(expr, alpha*A*x)
+        tA = @match(A, A') ? 'T' : 'N'
+        @call Base.LinAlg.BLAS.gemv(tA,alpha,A,x)
+    elseif @match(expr, A*x)
+        tA = @match(A, A') ? 'T' : 'N'
+        @call Base.LinAlg.BLAS.gemv(tA,A,x)
+    else
+        error("No match found")
+    end
+end
+
 macro gemv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
@@ -228,6 +304,28 @@ macro gemv!(expr::Expr)
     @match(w, beta*w) || (beta = 1.0)
     (y == w) || error("No match found")
     @call Base.LinAlg.BLAS.gemv!(tA,f(alpha),A,x,beta,y)
+end
+
+macro symm(expr::Expr, kwargs...)
+    kwargs = kwargs_to_dict(kwargs)
+    uplo = kwargs[:uplo]
+    if @match(expr, alpha*A*B)
+        side = @case begin
+            @match(A, A[symm]) && (symm.args[1] == :symm)   => 'L'
+            @match(B, B[symm]) && (symm.args[1] == :symm)   => 'R'
+            otherwise                                       => error("No match found")
+        end
+        @call Base.LinAlg.BLAS.symm(side,uplo,alpha,A,B)
+    elseif @match(expr, A*B)
+        side = @case begin
+            @match(A, A[symm]) && (symm.args[1] == :symm)   => 'L'
+            @match(B, B[symm]) && (symm.args[1] == :symm)   => 'R'
+            otherwise                                       => error("No match found")
+        end
+        @call Base.LinAlg.BLAS.symm(side,uplo,A,B)
+    else
+        error("No match found")
+    end
 end
 
 macro symm!(expr::Expr)
@@ -246,6 +344,16 @@ macro symm!(expr::Expr)
     @match(D, beta*D) || (beta = 1.0)
     (@match(D, D[crap]) && (C == D)) || (C == D) || error("No match found")
     @call Base.LinAlg.BLAS.symm!(side,uplo,f(alpha),A,B,beta,C)
+end
+
+macro symv(expr::Expr, kwargs...)
+    kwargs = kwargs_to_dict(kwargs)
+    uplo = kwargs[:uplo]
+    @case begin
+        @match(expr, alpha*A[uplo]*x)   => @call Base.LinAlg.BLAS.symv(uplo,alpha,A,x)
+        @match(expr, A[uplo]*x)         => @call Base.LinAlg.BLAS.symv(uplo,A,x)
+        otherwise                       => error("No match found")
+    end
 end
 
 macro symv!(expr::Expr)
