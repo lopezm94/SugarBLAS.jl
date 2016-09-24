@@ -25,12 +25,6 @@ end
 substracts(expr) = false
 substracts(expr::Expr) = (expr.head == :call) & (expr.args[1] == :-)
 
-char(s::Symbol) = string(s)[1]
-function char(expr::Expr)
-    (expr.head == :quote) || error("char doesn't support $(expr.head)")
-    char(expr.args[1])
-end
-
 isempty(nl::Nullable) = nl.isnull
 
 wrap(expr::Symbol) = QuoteNode(expr)
@@ -67,10 +61,6 @@ macro case(expr::Expr)
     exec *= "end"
     esc(parse(exec))
 end
-
-###########
-# Mutable #
-###########
 
 #Must be ordered from most to least especific formulas
 macro blas!(expr::Expr)
@@ -126,20 +116,18 @@ end
 macro syr!(expr::Expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
-    c = char(uplo)
     f = @case begin
         @match(right, alpha*x*x.' + Y)  => identity
         @match(right, Y - alpha*x*x.')  => (-)
         otherwise                       => error("No match found")
     end
     (@match(Y, Y[uplo]) && (Y == A)) || (Y == A) || error("No match found")
-    @call Base.LinAlg.BLAS.syr!(c,f(alpha),x,A)
+    @call Base.LinAlg.BLAS.syr!(uplo,f(alpha),x,A)
 end
 
 macro syrk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
-    c = char(uplo)
     f = @case begin
         @match(right, alpha*X*Y + D)    => identity
         @match(right, D - alpha*X*Y)    => (-)
@@ -152,27 +140,25 @@ macro syrk!(expr::Expr)
     end
     @match(D, beta*D) || (beta = 1.0)
     (@match(D, D[uplo]) && (C == D)) || (C == D) || error("No match found")
-    @call Base.LinAlg.BLAS.syrk!(c,trans,f(alpha),A,beta,C)
+    @call Base.LinAlg.BLAS.syrk!(uplo,trans,f(alpha),A,beta,C)
 end
 
 macro her!(expr::Expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
-    c = char(uplo)
     f = @case begin
         @match(right, alpha*x*x' + Y)   => identity
         @match(right, Y - alpha*x*x')   => (-)
         otherwise                       => error("No match found")
     end
     (@match(Y, Y[uplo]) && (Y == A)) || (Y == A) || error("No match found")
-    @call Base.LinAlg.BLAS.her!(c,f(alpha),x,A)
+    @call Base.LinAlg.BLAS.her!(uplo,f(alpha),x,A)
 end
 
 macro herk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
-    c = char(uplo)
-    f = @case begin #Right hand side must match one of these
+    f = @case begin
         @match(right, alpha*X*Y + D)    => identity
         @match(right, D - alpha*X*Y)    => (-)
         otherwise                       => error("No match found")
@@ -183,14 +169,14 @@ macro herk!(expr::Expr)
         otherwise                   =>  error("No match found")
     end
     @match(D, beta*D) || (beta = 1.0)
-    (@match(D, D[uplo]) && (C == D)) || (C == D) || error("No match found")
-    @call Base.LinAlg.BLAS.herk!(c,trans,f(alpha),A,beta,C)
+    (@match(D, D[crap]) && (C == D)) || (C == D) || error("No match found")
+    @call Base.LinAlg.BLAS.herk!(uplo,trans,f(alpha),A,beta,C)
 end
 
 macro gbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @case begin #Right hand side must match one of these
+    f = @case begin
         @match(right, alpha*Y*x + w)    => identity
         @match(right, w - alpha*Y*x)    => (-)
         otherwise                       => error("No match found")
@@ -198,28 +184,27 @@ macro gbmv!(expr::Expr)
     trans = @match(Y, Y') ? 'T' : 'N'
     @match(Y, A[kl:ku,h=m])
     @match(w, beta*w) || (beta = 1.0)
-    (@match(w, w[uplo]) && (y == w)) || (y == w) || error("No match found")
+    (y == w) || error("No match found")
     @call Base.LinAlg.BLAS.gbmv!(trans,m,abs(kl),ku,f(alpha),A,x,beta,y)
 end
 
 macro sbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @case begin #Right hand side must match one of these
+    f = @case begin
         @match(right, alpha*A[0:k,uplo]*x + w)  => identity
         @match(right, w - alpha*A[0:k,uplo]*x)  => (-)
         otherwise                               => error("No match found")
     end
-    c = char(uplo)
     @match(w, beta*w) || (beta = 1.0)
-    (@match(w, w[uplo]) && (y == w)) || (y == w) || error("No match found")
-    @call Base.LinAlg.BLAS.sbmv!(c,k,f(alpha),A,x,beta,y)
+    (@match(w, w[crap]) && (y == w)) || (y == w) || error("No match found")
+    @call Base.LinAlg.BLAS.sbmv!(uplo,k,f(alpha),A,x,beta,y)
 end
 
 macro gemm!(expr::Expr)
     expr = expand(expr)
     @match(expr, C = right) || error("No match found")
-    f = @case begin #Right hand side must match one of these
+    f = @case begin
         @match(right, alpha*A*B + D)    => identity
         @match(right, D - alpha*A*B)    => (-)
         otherwise                       => error("No match found")
@@ -227,55 +212,53 @@ macro gemm!(expr::Expr)
     tA = @match(A, A') ? 'T' : 'N'
     tB = @match(B, B') ? 'T' : 'N'
     @match(D, beta*D) || (beta = 1.0)
-    (@match(D, D[uplo]) && (C == D)) || (C == D) || error("No match found")
+    (C == D) || error("No match found")
     @call Base.LinAlg.BLAS.gemm!(tA,tB,f(alpha),A,B,beta,C)
 end
 
 macro gemv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @case begin #Right hand side must match one of these
+    f = @case begin
         @match(right, alpha*A*x + w)  => identity
         @match(right, w - alpha*A*x)  => (-)
         otherwise                         => error("No match found")
     end
     tA = @match(A, A') ? 'T' : 'N'
     @match(w, beta*w) || (beta = 1.0)
-    (@match(w, w[uplo]) && (y == w)) || (y == w) || error("No match found")
+    (y == w) || error("No match found")
     @call Base.LinAlg.BLAS.gemv!(tA,f(alpha),A,x,beta,y)
 end
 
 macro symm!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
-    f = @case begin #Right hand side must match one of these
+    f = @case begin
         @match(right, alpha*A*B + D)    => identity
         @match(right, D - alpha*A*B)    => (-)
         otherwise                       => error("No match found")
     end
-    c = char(uplo)
     side = @case begin
         @match(A, A[symm]) && (symm.args[1] == :symm)   => 'L'
         @match(B, B[symm]) && (symm.args[1] == :symm)   => 'R'
         otherwise                                       => error("No match found")
     end
     @match(D, beta*D) || (beta = 1.0)
-    (@match(D, D[uplo]) && (C == D)) || (C == D) || error("No match found")
-    @call Base.LinAlg.BLAS.symm!(side,c,f(alpha),A,B,beta,C)
+    (@match(D, D[crap]) && (C == D)) || (C == D) || error("No match found")
+    @call Base.LinAlg.BLAS.symm!(side,uplo,f(alpha),A,B,beta,C)
 end
 
 macro symv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
-    f = @case begin #Right hand side must match one of these
+    f = @case begin
         @match(right, alpha*A[uplo]*x + w)  => identity
         @match(right, w - alpha*A[uplo]*x)  => (-)
         otherwise                         => error("No match found")
     end
-    c = char(uplo)
     @match(w, beta*w) || (beta = 1.0)
-    (@match(w, w[uplo]) && (y == w)) || (y == w) || error("No match found")
-    @call Base.LinAlg.BLAS.symv!(c,f(alpha),A,x,beta,y)
+    (@match(w, w[crap]) && (y == w)) || (y == w) || error("No match found")
+    @call Base.LinAlg.BLAS.symv!(uplo,f(alpha),A,x,beta,y)
 end
 
 end
