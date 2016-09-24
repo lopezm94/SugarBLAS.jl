@@ -9,12 +9,14 @@ export  @scale!, @axpy!, @copy!, @ger!, @syr!, @syrk, @syrk!,
 include("Match/Match.jl")
 using .Match
 
-import Base: copy, abs, -
+import Base: copy, -
 
 copy(s::Symbol) = s
--(expr) = Expr(:call, :-, expr)
 
-function abs(ast)
+"""
+Negate a Symbol or Expression
+"""
+function -(ast)
     if @match(ast, -ast) | (ast == 0)
         ast
     else
@@ -212,7 +214,7 @@ macro gbmv(expr::Expr)
     @match(expr, alpha*Y*x) || error("No match found")
     trans = @match(Y, Y') ? 'T' : 'N'
     @match(Y, A[kl:ku,h=m])
-    @call Base.LinAlg.BLAS.gbmv(trans,m,abs(kl),ku,alpha,A,x)
+    @call Base.LinAlg.BLAS.gbmv(trans,m,-kl,ku,alpha,A,x)
 end
 
 macro gbmv!(expr::Expr)
@@ -227,7 +229,7 @@ macro gbmv!(expr::Expr)
     @match(Y, A[kl:ku,h=m])
     @match(w, beta*w) || (beta = 1.0)
     (y == w) || error("No match found")
-    @call Base.LinAlg.BLAS.gbmv!(trans,m,abs(kl),ku,f(alpha),A,x,beta,y)
+    @call Base.LinAlg.BLAS.gbmv!(trans,m,-kl,ku,f(alpha),A,x,beta,y)
 end
 
 macro sbmv(expr::Expr)
