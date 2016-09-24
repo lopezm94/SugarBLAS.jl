@@ -1,4 +1,8 @@
 __precompile__(true)
+
+"""
+Syntactic sugar for BLAS polynomials.
+"""
 module SugarBLAS
 
 export  @blas!
@@ -11,10 +15,10 @@ using .Match
 
 import Base: copy, -
 
-copy(s::Symbol) = s
+copy(s::Symbol) = s #Generic fallback deprecated in 0.5
 
 """
-Negate a Symbol or Expression
+Negate a symbol or expression
 """
 function -(ast)
     if @match(ast, -ast) | (ast == 0)
@@ -24,11 +28,20 @@ function -(ast)
     end
 end
 
+"""
+Determine whether it is a substraction or not
+"""
 substracts(expr) = false
 substracts(expr::Expr) = (expr.head == :call) & (expr.args[1] == :-)
 
+"""
+Sugarcoat '.isnull'
+"""
 isempty(nl::Nullable) = nl.isnull
 
+"""
+Make dictionary containing the kwargs contents.
+"""
 function kwargs_to_dict(kwargs::Tuple)
     dict = Dict()
     for kw in kwargs
@@ -37,6 +50,9 @@ function kwargs_to_dict(kwargs::Tuple)
     dict
 end
 
+"""
+Wrap a expr with an expression.
+"""
 wrap(expr::Symbol) = QuoteNode(expr)
 function wrap(expr::Expr)
     head = QuoteNode(expr.head)
@@ -44,16 +60,25 @@ function wrap(expr::Expr)
     :(Expr($head, parse($func), $(expr.args[2:end]...)))
 end
 
+"""
+Expand mixed assignment operators.
+"""
 function expand(expr::Expr)
     @match(expr, A += B) && return :($A = $A + $B)
     @match(expr, A -= B) && return :($A = $A - $B)
     expr
 end
 
+"""
+Execute escaped expr.
+"""
 macro call(expr::Expr)
     esc(:(esc($(wrap(expr)))))
 end
 
+"""
+Sugar for if-then-else expression. Beautiful for one liners.
+"""
 macro case(expr::Expr)
     (expr.head == :block) || error("@case statement must be followed by `begin ... end`")
     lines = filter(expr::Expr -> expr.head != :line, expr.args)
@@ -72,6 +97,32 @@ macro case(expr::Expr)
     esc(parse(exec))
 end
 
+###############
+# BLAS macros #
+###############
+
+"""
+    @blas!(expr)
+
+Transform expr to most specific BLAS function. Resulting expression will be
+Base.copy!, Base.scale! or Base.LinAlg.axpy!.
+
+**Polynomials**
+
+*copy!*:
+
+- `X = Y`
+
+*scale!*:
+
+- `X *= a`
+- `X = a*X`
+
+*axpy!*:
+
+- `Y ±= X`
+- `Y ±= a*X`
+"""
 #Must be ordered from most to least especific formulas
 macro blas!(expr::Expr)
     expr = expand(expr)
@@ -87,6 +138,15 @@ macro blas!(expr::Expr)
     end
 end
 
+"""
+    @copy!(expr)
+
+Transform expr to Base.copy! function.
+
+**Polynomials**
+
+- `X = Y`
+"""
 macro copy!(expr::Expr)
     @case begin
         @match(expr, X = Y) => @call copy!(X,Y)
@@ -94,6 +154,16 @@ macro copy!(expr::Expr)
     end
 end
 
+"""
+    @scale!(expr)
+
+Transform expr to Base.scale! function.
+
+**Polynomials**
+
+- `X *= a`
+- `X = a*X`
+"""
 macro scale!(expr::Expr)
     @case begin
         @match(expr, X *= a)    => @call scale!(a,X)
@@ -102,6 +172,16 @@ macro scale!(expr::Expr)
     end
 end
 
+"""
+    @scale!(expr)
+
+Transform expr to Base.LinAlg.axpy! function.
+
+**Polynomials**
+
+- `Y ±= X`
+- `Y ±= a*X`
+"""
 macro axpy!(expr::Expr)
     expr = expand(expr)
     @case begin
@@ -113,6 +193,15 @@ macro axpy!(expr::Expr)
     end
 end
 
+"""
+    @ger!(expr)
+
+Transform expr to Base.LinAlg.BLAS.ger! function.
+
+**Polynomials**
+
+- `A ±= alpha*x*y'`
+"""
 macro ger!(expr::Expr)
     expr = expand(expr)
     f = @case begin
@@ -123,6 +212,15 @@ macro ger!(expr::Expr)
     @call Base.LinAlg.BLAS.ger!(f(alpha),x,y,A)
 end
 
+"""
+    @syr!(expr)
+
+Transform expr to Base.LinAlg.BLAS.syr! function.
+
+**Polynomials**
+
+- `Y[uplo] ±= alpha*x*x.'`
+"""
 macro syr!(expr::Expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
@@ -135,6 +233,16 @@ macro syr!(expr::Expr)
     @call Base.LinAlg.BLAS.syr!(uplo,f(alpha),x,A)
 end
 
+"""
+    @syrk!(expr)
+
+Transform expr to Base.LinAlg.BLAS.syrk! function.
+
+**Polynomials**
+
+- `alpha*A*A.' uplo=ul`
+- `alpha*A.'*A uplo=ul`
+"""
 macro syrk(expr::Expr, kwargs...)
     kwargs = kwargs_to_dict(kwargs)
     uplo = kwargs[:uplo]
@@ -150,6 +258,16 @@ macro syrk(expr::Expr, kwargs...)
     @call Base.LinAlg.BLAS.syrk(uplo,trans,f(alpha),A)
 end
 
+"""
+    @syrk!(expr)
+
+Transform expr to Base.LinAlg.BLAS.syrk! function.
+
+**Polynomials**
+
+- `C[uplo] ±= alpha*A*A.'`
+- `C[uplo] ±= alpha*A.'*A`
+"""
 macro syrk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
@@ -168,6 +286,15 @@ macro syrk!(expr::Expr)
     @call Base.LinAlg.BLAS.syrk!(uplo,trans,f(alpha),A,beta,C)
 end
 
+"""
+    @her!(expr)
+
+Transform expr to Base.LinAlg.BLAS.her! function.
+
+**Polynomials**
+
+- `A[uplo] ±= alpha*x*x'`
+"""
 macro her!(expr::Expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
@@ -180,6 +307,15 @@ macro her!(expr::Expr)
     @call Base.LinAlg.BLAS.her!(uplo,f(alpha),x,A)
 end
 
+"""
+    @herk(expr)
+
+Transform expr to Base.LinAlg.BLAS.herk function.
+
+**Polynomials**
+
+- `alpha*A*A' uplo=ul`
+"""
 macro herk(expr::Expr, kwargs...)
     kwargs = kwargs_to_dict(kwargs)
     uplo = kwargs[:uplo]
@@ -192,6 +328,16 @@ macro herk(expr::Expr, kwargs...)
     @call Base.LinAlg.BLAS.herk(uplo,trans,alpha,A)
 end
 
+"""
+    @herk!(expr)
+
+Transform expr to Base.LinAlg.BLAS.herk! function.
+
+**Polynomials**
+
+- `C[uplo] ±= alpha*A*A'`
+- `C[uplo] ±= alpha*A'*A`
+"""
 macro herk!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
@@ -210,6 +356,16 @@ macro herk!(expr::Expr)
     @call Base.LinAlg.BLAS.herk!(uplo,trans,f(alpha),A,beta,C)
 end
 
+"""
+    @gbmv(expr)
+
+Transform expr to Base.LinAlg.BLAS.gbmv function.
+
+**Polynomials**
+
+- `alpha*A[kl:ku,h=m]*x`
+- `alpha*A[h=m,kl:ku]'*x`
+"""
 macro gbmv(expr::Expr)
     @match(expr, alpha*Y*x) || error("No match found")
     trans = @match(Y, Y') ? 'T' : 'N'
@@ -217,6 +373,16 @@ macro gbmv(expr::Expr)
     @call Base.LinAlg.BLAS.gbmv(trans,m,-kl,ku,alpha,A,x)
 end
 
+"""
+    @gbmv!(expr)
+
+Transform expr to Base.LinAlg.BLAS.gbmv! function.
+
+**Polynomials**
+
+- `C ±= alpha*A[kl:ku,h=m]*x`
+- `C ±= alpha*A[h=m,kl:ku]'*x`
+"""
 macro gbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
@@ -232,6 +398,16 @@ macro gbmv!(expr::Expr)
     @call Base.LinAlg.BLAS.gbmv!(trans,m,-kl,ku,f(alpha),A,x,beta,y)
 end
 
+"""
+    @sbmv(expr)
+
+Transform expr to Base.LinAlg.BLAS.sbmv function.
+
+**Polynomials**
+
+- `A[0:k,uplo]*xv`
+- `alpha*A[0:k,uplo]*x`
+"""
 macro sbmv(expr::Expr)
     @case begin
         @match(expr, alpha*A[0:k,uplo]*x)   => @call Base.LinAlg.BLAS.sbmv(uplo,k,alpha,A,x)
@@ -240,6 +416,15 @@ macro sbmv(expr::Expr)
     end
 end
 
+"""
+    @sbmv!(expr)
+
+Transform expr to Base.LinAlg.BLAS.sbmv! function.
+
+**Polynomials**
+
+- `y ±= alpha*A[0:k,uplo]*x`
+"""
 macro sbmv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
@@ -253,6 +438,22 @@ macro sbmv!(expr::Expr)
     @call Base.LinAlg.BLAS.sbmv!(uplo,k,f(alpha),A,x,beta,y)
 end
 
+"""
+    @gemm(expr)
+
+Transform expr to Base.LinAlg.BLAS.gemm function.
+
+**Polynomials**
+
+- `A*B`
+- `A'*B`
+- `A*B'`
+- `A'*B'`
+- `alpha*A*B`
+- `alpha*A'*B`
+- `alpha*A*B'`
+- `alpha*A'*B'`
+"""
 macro gemm(expr::Expr)
     if @match(expr, alpha*A*B)
         tA = @match(A, A') ? 'T' : 'N'
@@ -267,6 +468,22 @@ macro gemm(expr::Expr)
     end
 end
 
+"""
+    @gemm!(expr)
+
+Transform expr to Base.LinAlg.BLAS.gemm! function.
+
+**Polynomials**
+
+- `C ±= alpha*A*B`
+- `C ±= alpha*A'*B`
+- `C ±= alpha*A*B'`
+- `C ±= alpha*A'*B'`
+- `C = beta*C ± alpha*A*B`
+- `C = beta*C ± alpha*A'*B`
+- `C = beta*C ± alpha*A*B'`
+- `C = beta*C ± alpha*A'*B'`
+"""
 macro gemm!(expr::Expr)
     expr = expand(expr)
     @match(expr, C = right) || error("No match found")
@@ -282,6 +499,18 @@ macro gemm!(expr::Expr)
     @call Base.LinAlg.BLAS.gemm!(tA,tB,f(alpha),A,B,beta,C)
 end
 
+"""
+    @gemv(expr)
+
+Transform expr to Base.LinAlg.BLAS.gemv function.
+
+**Polynomials**
+
+- `A*x`
+- `A'*x`
+- `alpha*A*x`
+- `alpha*A'*x`
+"""
 macro gemv(expr::Expr)
     if @match(expr, alpha*A*x)
         tA = @match(A, A') ? 'T' : 'N'
@@ -294,6 +523,18 @@ macro gemv(expr::Expr)
     end
 end
 
+"""
+    @gemv!(expr)
+
+Transform expr to Base.LinAlg.BLAS.gemv! function.
+
+**Polynomials**
+
+- `y ±= alpha*A*x`
+- `y ±= alpha*A'*x`
+- `y = beta*y ± alpha*A*x`
+- `y = beta*y ± alpha*A'*x`
+"""
 macro gemv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
@@ -308,6 +549,18 @@ macro gemv!(expr::Expr)
     @call Base.LinAlg.BLAS.gemv!(tA,f(alpha),A,x,beta,y)
 end
 
+"""
+    @symm(expr)
+
+Transform expr to Base.LinAlg.BLAS.symm function.
+
+**Polynomials**
+
+- `A[:symm]*B uplo=ul`
+- `A*B[:symm] uplo=ul`
+- `alpha*A[:symm]*B uplo=ul`
+- `alpha*A*B[:symm] uplo=ul`
+"""
 macro symm(expr::Expr, kwargs...)
     kwargs = kwargs_to_dict(kwargs)
     uplo = kwargs[:uplo]
@@ -330,6 +583,18 @@ macro symm(expr::Expr, kwargs...)
     end
 end
 
+"""
+    @symm!(expr)
+
+Transform expr to Base.LinAlg.BLAS.symm! function.
+
+**Polynomials**
+
+- `C[uplo] = alpha*A[:symm]*B`
+- `C[uplo] = alpha*A*B[:symm]`
+- `C[uplo] = beta*C ± alpha*A[:symm]*B`
+- `C[uplo] = beta*C ± alpha*A*B[:symm]`
+"""
 macro symm!(expr::Expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
@@ -348,6 +613,16 @@ macro symm!(expr::Expr)
     @call Base.LinAlg.BLAS.symm!(side,uplo,f(alpha),A,B,beta,C)
 end
 
+"""
+    @symv(expr)
+
+Transform expr to Base.LinAlg.BLAS.symv function.
+
+**Polynomials**
+
+- `A[uplo]*x`
+- `alpha*A[uplo]*x`
+"""
 macro symv(expr::Expr, kwargs...)
     kwargs = kwargs_to_dict(kwargs)
     uplo = kwargs[:uplo]
@@ -358,13 +633,23 @@ macro symv(expr::Expr, kwargs...)
     end
 end
 
+"""
+    @symv!(expr)
+
+Transform expr to Base.LinAlg.BLAS.symv! function.
+
+**Polynomials**
+
+- `y ±= alpha*A[uplo]*x`
+- `y = beta*y ± alpha*A[uplo]*x`
+"""
 macro symv!(expr::Expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
     f = @case begin
         @match(right, alpha*A[uplo]*x + w)  => identity
         @match(right, w - alpha*A[uplo]*x)  => (-)
-        otherwise                         => error("No match found")
+        otherwise                           => error("No match found")
     end
     @match(w, beta*w) || (beta = 1.0)
     (@match(w, w[crap]) && (y == w)) || (y == w) || error("No match found")

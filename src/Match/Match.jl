@@ -1,3 +1,6 @@
+"""
+Extract expression sub-trees.
+"""
 module Match
 
 export @match
@@ -6,6 +9,9 @@ iskw(expr::Expr) = expr.head == :kw
 isref(expr::Expr) = expr.head == :ref
 iscall(expr::Expr) = expr.head == :call
 
+"""
+Determines whether expression has commutative property.
+"""
 function iscommutative(op::Expr)
     iscall(op) && return iscommutative(op.args[1])
     isref(op) && return true
@@ -16,6 +22,9 @@ iscommutative(op::Symbol) = _iscommutative(Val{op})
 _iscommutative(::Type{Val{:(+)}}) = true
 _iscommutative{T<:Val}(::Type{T}) = false
 
+"""
+Iterator of all possible permutations.
+"""
 permutations(r::Range) = permutations(collect(r))
 permutations(v::Vector) = @task permfactory(v)
 
@@ -34,14 +43,19 @@ function permfactory{T}(v::Vector{T})
     end
 end
 
-#Overwrite d
-#Returns false if successfull, true otherwise
+"""
+Output true if dictionary 'd' has a key 's' with a different value than 'v'.
+Otherwise add value to dictionary and output false.
+"""
 function conflictadd!(d::Dict, s::Symbol, v)
     haskey(d,s) && (d[s] != v) && return true
     d[s] = v
     false
 end
 
+"""
+Determine whether both expressions have the same head and arguments length.
+"""
 function partialmatch(expr::Expr, formula::Expr)
     samehead = (expr.head == formula.head)
     samelen = length(expr.args) == length(formula.args)
@@ -49,13 +63,21 @@ function partialmatch(expr::Expr, formula::Expr)
     true
 end
 
+"""
+Match set of arguments from formula with expr.
+"""
 function match_args(symbols::Dict, expr::Expr, formula::Expr)
     offset = (iscall(expr) | isref(expr)) ? 1 : 0
     (!iscall(expr) | (expr.args[1] == formula.args[1])) || return false
-    _match_args(Val{iscommutative(expr)}, offset, symbols, expr, formula)
+    match_args(Val{iscommutative(expr)}, offset, symbols, expr, formula)
 end
+match_args(::Type{Val{false}}, kwargs...) = static_match(kwargs...)
+match_args(::Type{Val{true}}, kwargs...) = commutative_match(kwargs...)
 
-function _match_args(::Type{Val{false}}, offset, symbols, expr, formula)
+"""
+Match each argument of formula with each argument of expr in an orderly fashion.
+"""
+function static_match(offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     (!isref(expr) | match(symbols, eargs[1], margs[1])) || return false
     for i in 1+offset:length(eargs)
@@ -63,7 +85,11 @@ function _match_args(::Type{Val{false}}, offset, symbols, expr, formula)
     end
     true
 end
-function _match_args(::Type{Val{true}}, offset, symbols, expr, formula)
+
+"""
+Match each argument of formula with each argument of expr in any order.
+"""
+function commutative_match(offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     n = length(eargs)-offset
     (!isref(expr) | match(symbols, eargs[1], margs[1])) || return false
@@ -78,6 +104,9 @@ function _match_args(::Type{Val{true}}, offset, symbols, expr, formula)
     false
 end
 
+"""
+Match formula with expr. Overwrite dictionary with matched values.
+"""
 match(::Dict, expr, formula) = expr == formula
 match(symbols::Dict, expr, s::Symbol) = !conflictadd!(symbols, s, expr)
 function match(symbols::Dict, expr::Expr, formula::Expr)
@@ -86,6 +115,9 @@ function match(symbols::Dict, expr::Expr, formula::Expr)
 end
 match(::Dict, expr, formula::Expr) = false
 
+"""
+Match formula with expr. Overwrite matched values directly to formula declared symbols.
+"""
 macro match(expr, formula)
     vars = getvars(formula)
     aux1 = "$formula"
@@ -102,6 +134,12 @@ macro match(expr, formula)
     exec
 end
 
+"""
+Get leaf symbols from expression.
+"""
+getvars(expr::Symbol) = _getvars(expr)
+getvars(expr::Expr) = _getvars(unkeyword!(expr))
+
 _getvars(::Any) = Set{Symbol}()
 _getvars(s::Symbol) = Set{Symbol}([s])
 function _getvars(expr::Expr)
@@ -109,9 +147,9 @@ function _getvars(expr::Expr)
     union(map(_getvars, expr.args[start:end])...)
 end
 
-getvars(expr::Symbol) = _getvars(expr)
-getvars(expr::Expr) = _getvars(unkeyword!(expr))
-
+"""
+Transform keyword to assignment.
+"""
 function unkeyword!(expr::Expr)
     iskw(expr) && (expr.head = :(=))
     expr
