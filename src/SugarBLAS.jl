@@ -122,6 +122,7 @@ Base.copy!, Base.scale! or Base.LinAlg.axpy!.
 """
 #Must be ordered from most to least especific formulas
 macro blas!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @case begin
         @match(expr, X *= a)        => @call scale!(a,X)
@@ -145,6 +146,7 @@ Copy all elements from collection `Y` to array `X`. Return `X`.
 - `X = Y`
 """
 macro copy!(expr::Expr)
+    unkeyword!(expr)
     @case begin
         @match(expr, X = Y) => @call copy!(X,Y)
         otherwise           => error("No match found")
@@ -162,6 +164,7 @@ Scale an array `X` by a scalar `a` overwriting `X` in-place.
 - `X = a*X`
 """
 macro scale!(expr::Expr)
+    unkeyword!(expr)
     @case begin
         @match(expr, X *= a)    => @call scale!(a,X)
         @match(expr, X = a*X)   => @call scale!(a,X)
@@ -180,6 +183,7 @@ Overwrite `Y` with `a*X + Y`. Return `Y`.
 - `Y ±= a*X`
 """
 macro axpy!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @case begin
         @match(expr, Y = Y - a*X)   => @call(Base.LinAlg.axpy!(-a,X,Y))
@@ -200,6 +204,7 @@ Rank-1 update of the matrix `A` with vectors `x` and `y` as `alpha*x*y' + A`.
 - `A ±= alpha*x*y'`
 """
 macro ger!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     f = @case begin
         @match(expr, A = alpha*x*y' + A)    => identity
@@ -221,6 +226,7 @@ triangle). Return `A`.
 - `A[uplo] ±= alpha*x*x.'`
 """
 macro syr!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
     f = @case begin
@@ -271,6 +277,7 @@ is updated (`'L'` for lower triangle). Return `C`.
 - `C[uplo] = beta*C ± alpha*A.'*A`
 """
 macro syrk!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
     f = @case begin
@@ -300,6 +307,7 @@ the upper triangle of `A` is updated (`'L'` for lower triangle). Return `A`.
 - `A[uplo] ±= alpha*x*x'`
 """
 macro her!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
     f = @case begin
@@ -348,6 +356,7 @@ the upper triangle of `C` is updated (`'L'` for lower triangle). Return `C`.
 - `C[uplo] = beta*C ± alpha*A'*A`
 """
 macro herk!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, C[uplo] = right) || error("No match found")
     f = @case begin
@@ -396,6 +405,7 @@ The matrix `A` is a general band matrix of dimension `m` by `size(A,2)` with
 - `y = beta*y ± alpha*A[h=m,kl:ku]'*x`
 """
 macro gbmv!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
     f = @case begin
@@ -443,6 +453,7 @@ lower triangle. Return updated `y`.
 - `y = beta*y ± alpha*A[0:k,uplo]*x`
 """
 macro sbmv!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
     f = @case begin
@@ -503,6 +514,7 @@ combination of transposes of `A` and `B`. Return updated C.
 - `C = beta*C ± alpha*A'*B'`
 """
 macro gemm!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, C = right) || error("No match found")
     f = @case begin
@@ -555,6 +567,7 @@ Return updated `y`.
 - `y = beta*y ± alpha*A'*x`
 """
 macro gemv!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
     f = @case begin
@@ -616,6 +629,7 @@ Update `C` as `alpha*A*B + beta*C` or `alpha*B*A + beta*C` according to `"symm"`
 - `C = beta*C ± alpha*A*B["symm",uplo]`
 """
 macro symm!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, C = right) || error("No match found")
     f = @case begin
@@ -665,6 +679,7 @@ Return updated y.
 - `y = beta*y ± alpha*A[uplo]*x`
 """
 macro symv!(expr::Expr)
+    unkeyword!(expr)
     expr = expand(expr)
     @match(expr, y = right) || error("No match found")
     f = @case begin

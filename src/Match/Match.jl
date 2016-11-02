@@ -4,6 +4,7 @@ Extract expression sub-trees.
 module Match
 
 export @match
+export unkeyword!
 
 iskw(expr::Expr) = expr.head == :kw
 isref(expr::Expr) = expr.head == :ref
