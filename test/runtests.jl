@@ -180,24 +180,24 @@ using Base.Test
 @test macroexpand(:(SugarBLAS.@gemv! y = beta*y + 1.5*A'*x)) == :(Base.LinAlg.BLAS.gemv!('T',1.5,A,x,beta,y))
 
 #symm
-@test macroexpand(:(SugarBLAS.@symm alpha*A[:symm]*B uplo='L')) == :(Base.LinAlg.BLAS.symm('L','L',alpha,A,B))
-@test macroexpand(:(SugarBLAS.@symm A*B[:symm] uplo='U')) == :(Base.LinAlg.BLAS.symm('R','U',A,B))
+@test macroexpand(:(SugarBLAS.@symm alpha*A["symm", 'L']*B)) == :(Base.LinAlg.BLAS.symm('L','L',alpha,A,B))
+@test macroexpand(:(SugarBLAS.@symm A*B["symm", 'U'])) == :(Base.LinAlg.BLAS.symm('R','U',A,B))
 
 #symm!
-@test macroexpand(:(SugarBLAS.@symm! C['L'] -= alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['U'] -= 1.5*A*B[:symm])) == :(Base.LinAlg.BLAS.symm!('R','U',-1.5,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['L'] = C - alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['U'] = C - 1.5*A*B[:symm])) == :(Base.LinAlg.BLAS.symm!('R','U',-1.5,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['L'] = beta*C - alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,beta,C))
-@test macroexpand(:(SugarBLAS.@symm! C['L'] += alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['U'] += 1.5*A*B[:symm])) == :(Base.LinAlg.BLAS.symm!('R','U',1.5,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['L'] = C + alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['U'] = 1.5*A*B[:symm] + C)) == :(Base.LinAlg.BLAS.symm!('R','U',1.5,A,B,1.0,C))
-@test macroexpand(:(SugarBLAS.@symm! C['L'] = beta*C + alpha*A[:symm]*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,beta,C))
+@test macroexpand(:(SugarBLAS.@symm! C -= alpha*A["symm", 'L']*B)) == :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C -= 1.5*A*B["symm", 'U'])) == :(Base.LinAlg.BLAS.symm!('R','U',-1.5,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C = C - alpha*A["symm", 'L']*B)) == :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C = C - 1.5*A*B["symm", 'U'])) == :(Base.LinAlg.BLAS.symm!('R','U',-1.5,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C = beta*C - alpha*A["symm", 'L']*B)) == :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,beta,C))
+@test macroexpand(:(SugarBLAS.@symm! C += alpha*A["symm", 'L']*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C += 1.5*A*B["symm", 'U'])) == :(Base.LinAlg.BLAS.symm!('R','U',1.5,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C = C + alpha*A["symm", 'L']*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C = 1.5*A*B["symm", 'U'] + C)) == :(Base.LinAlg.BLAS.symm!('R','U',1.5,A,B,1.0,C))
+@test macroexpand(:(SugarBLAS.@symm! C = beta*C + alpha*A["symm", 'L']*B)) == :(Base.LinAlg.BLAS.symm!('L','L',alpha,A,B,beta,C))
 
 #symv
-@test macroexpand(:(SugarBLAS.@symv alpha*A['U']*x uplo='U')) == :(Base.LinAlg.BLAS.symv('U',alpha,A,x))
-@test macroexpand(:(SugarBLAS.@symv A['L']*x uplo='L')) == :(Base.LinAlg.BLAS.symv('L',A,x))
+@test macroexpand(:(SugarBLAS.@symv alpha*A['U']*x)) == :(Base.LinAlg.BLAS.symv('U',alpha,A,x))
+@test macroexpand(:(SugarBLAS.@symv A['L']*x)) == :(Base.LinAlg.BLAS.symv('L',A,x))
 
 #symv!
 @test macroexpand(:(SugarBLAS.@symv! y -= alpha*A['U']*x)) == :(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,1.0,y))

@@ -108,6 +108,10 @@ true
   - [gemm!](#gemm-1)
   - [gemv](#gemv)
   - [gemv!](#gemv-1)
+  - [symm](#symm)
+  - [symm!](#symm-1)
+  - [symv](#symv)
+  - [symv!](#symv-1)
 
 
 ## *blas!*
@@ -195,8 +199,8 @@ Overwrite `Y` with `a*X + Y`. Return `Y`.
 
 **Polynomials**
 
-- `Y += X`
-- `Y += a*X`
+- `Y ±= X`
+- `Y ±= a*X`
 
 **Example**
 
@@ -231,8 +235,7 @@ Rank-1 update of the matrix `A` with vectors `x` and `y` as `alpha*x*y' + A`.
 
 **Polynomials**
 
-- `A -= alpha*x*y'`
-- `A += alpha*x*y'`
+- `A ±= alpha*x*y'`
 
 **Example**
 
@@ -248,13 +251,12 @@ julia> macroexpand(:(SugarBLAS.@ger! A += alpha*x*y'))
 ### *syr!*
 
 Rank-1 update of the symmetric matrix `A` with vector `x` as `alpha*x*x.' + A`.
-When left side has `A['U']` the upper triangle of `A` is updated (`'L'` for lower 
+When left side has `A['U']` the upper triangle of `A` is updated (`'L'` for lower
 triangle). Return `A`.
 
 **Polynomials**
 
-- `A['U'] -= alpha*x*x.'`
-- `A['L'] += alpha*x*x.'`
+- `A[uplo] ±= alpha*x*x.'`
 
 **Example**
 
@@ -269,13 +271,13 @@ julia> macroexpand(:(SugarBLAS.@syr! A['L'] += alpha*x*x.'))
 
 ### *syrk*
 
-Return either the upper triangle or the lower triangle, depending on 
+Return either the upper triangle or the lower triangle, depending on
 (`'U'` or `'L'`), of `alpha*A*A.'` or `alpha*A.'*A`.
 
 **Polynomials**
 
-- `alpha*A*A.' uplo='U'`
-- `alpha*A.'*A uplo='L'`
+- `alpha*A*A.' uplo=ul`
+- `alpha*A.'*A uplo=ul`
 
 **Example**
 
@@ -290,16 +292,14 @@ julia> macroexpand(:(SugarBLAS.@syrk alpha*A.'*A uplo='L'))
 
 ### *syrk!*
 
-Rank-k update of the symmetric matrix `C` as `alpha*A*A.' + beta*C` or 
+Rank-k update of the symmetric matrix `C` as `alpha*A*A.' + beta*C` or
 `alpha*A.'*A + beta*C`. When the left hand side is`C['U']` the upper triangle of `C`
 is updated (`'L'` for lower triangle). Return `C`.
 
 **Polynomials**
 
-- `C['U'] += alpha*A*A.'`
-- `C['L'] = alpha*A.'*A + beta*C`
-- `C['U'] -= alpha*A*A.'`
-- `C['L'] = beta*C - alpha*A.'*A`
+- `C[uplo] ±= alpha*A*A.'`
+- `C[uplo] = beta*C ± alpha*A.'*A`
 
 **Example**
 
@@ -320,15 +320,13 @@ julia> macroexpand(:(SugarBLAS.@syrk! C['L'] = alpha*A.'*A + beta*C))
 
 ### *her!*
 
-Methods for complex arrays only. Rank-1 update of the Hermitian matrix `A` 
-with vector `x` as `alpha*x*x' + A`. Whenthe left hand side is `A['U']` 
+Methods for complex arrays only. Rank-1 update of the Hermitian matrix `A`
+with vector `x` as `alpha*x*x' + A`. Whenthe left hand side is `A['U']`
 the upper triangle of `A` is updated (`'L'` for lower triangle). Return `A`.
 
 **Polynomials**
 
-- `A['U'] -= alpha*x*x'`
-- `A['L'] = A - alpha*x*x'`
-- `A['U'] += alpha*x*x'`
+- `A[uplo] ±= alpha*x*x'`
 
 **Example**
 
@@ -346,14 +344,14 @@ julia> macroexpand(:(SugarBLAS.@her! A['U'] += alpha*x*x'))
 
 ### *herk*
 
-Methods for complex arrays only. Returns either the upper triangle or the 
-lower triangle, according to uplo ('U' or 'L'), of alpha*A*A' or alpha*A'*A, 
+Methods for complex arrays only. Returns either the upper triangle or the
+lower triangle, according to uplo ('U' or 'L'), of alpha*A*A' or alpha*A'*A,
 according to trans ('N' or 'T').
 
 **Polynomials**
 
-- `alpha*A*A' uplo='U'`
-- `alpha*A'*A uplo='L'`
+- `alpha*A*A' uplo=ul`
+- `alpha*A'*A uplo=ul`
 
 **Example**
 
@@ -374,17 +372,14 @@ julia> macroexpand(:(SugarBLAS.@herk alpha*A'*A uplo='L'))
 
 ### *herk!*
 
-Methods for complex arrays only. Rank-k update of the Hermitian matrix `C` as 
-`alpha*A*A' + beta*C` or `alpha*A'*A + beta*C`. When the left hand side is `C['U']` 
+Methods for complex arrays only. Rank-k update of the Hermitian matrix `C` as
+`alpha*A*A' + beta*C` or `alpha*A'*A + beta*C`. When the left hand side is `C['U']`
 the upper triangle of `C` is updated (`'L'` for lower triangle). Return `C`.
 
 **Polynomials**
 
-- `C['L'] -= alpha*A'*A`
-- `C['U'] = C - alpha*A*A'`
-- `C['L'] = beta*C - alpha*A'*A`
-- `C['U'] += alpha*A*A'`
-- `C['L'] = alpha*A'*A + beta*C`
+- `C[uplo] ±= alpha*A*A'`
+- `C[uplo] = beta*C ± alpha*A'*A`
 
 **Example**
 
@@ -408,13 +403,13 @@ julia> macroexpand(:(SugarBLAS.@herk! C['L'] = alpha*A'*A + beta*C))
 
 ### *gbmv*
 
-Return `alpha*A*x` or `alpha*A'*x`. The matrix `A` is a general band matrix 
+Return `alpha*A*x` or `alpha*A'*x`. The matrix `A` is a general band matrix
 of dimension `m` by `size(A,2)` with `kl` sub-diagonals and `ku` super-diagonals.
 
 **Polynomials**
 
-- `alpha*A[0:ku,h=2]*x`
-- `alpha*A[h=m,-kl:ku]*x`
+- `alpha*A[kl:ku,h=m]*x`
+- `alpha*A[h=m,kl:ku]'*x`
 
 **Example**
 
@@ -429,16 +424,14 @@ julia> macroexpand(:(SugarBLAS.@gbmv alpha*A[h=m,-kl:ku]*x))
 
 ### *gbmv!*
 
-Update vector `y` as `alpha*A*x + beta*y` or `alpha*A'*x + beta*y`. 
-The matrix `A` is a general band matrix of dimension `m` by `size(A,2)` with 
+Update vector `y` as `alpha*A*x + beta*y` or `alpha*A'*x + beta*y`.
+The matrix `A` is a general band matrix of dimension `m` by `size(A,2)` with
 `kl` sub-diagonals and `ku` super-diagonals. Return the updated `y`.
 
 **Polynomials**
 
-- `y -= alpha*A[h=m,-kl:ku]*x`
-- `y = beta*y - alpha*A[h=2, 0:ku]'*x`
-- `y += alpha*A[h=m,-kl:ku]*x`
-- `y = alpha*A[0:ku,h=2]*x + y`
+- `y ±= alpha*A[kl:ku,h=m]*x`
+- `y = beta*y ± alpha*A[h=m,kl:ku]'*x`
 
 **Example**
 
@@ -462,14 +455,14 @@ The matrix `A` is a general band matrix of dimension `m` by `size(A,2)` with
 
 ### *sbmv*
 
-Return `alpha*A*x` where `A` is a symmetric band matrix of order `size(A,2)` with 
+Return `alpha*A*x` where `A` is a symmetric band matrix of order `size(A,2)` with
 `k` super-diagonals stored in the argument `A`.
 
 
 **Polynomials**
 
-- `A['U',0:k]*x`
-- `alpha*A[0:k,'L']*x`
+- `A[0:k,uplo]*xv`
+- `alpha*A[0:k,uplo]*x`
 
 **Example**
 
@@ -484,19 +477,16 @@ julia> macroexpand(:(SugarBLAS.@sbmv alpha*A[0:k,'L']*x))
 
 ### *sbmv!*
 
-Update vector `y` as `alpha*A*x + beta*y` where `A` is a a symmetric band matrix 
-of order `size(A,2)` with `k` super-diagonals stored in the argument `A`. If 
-`A[...,'U']` is used multiplication is done with `A`'s upper triangle, `L` is for the 
+Update vector `y` as `alpha*A*x + beta*y` where `A` is a a symmetric band matrix
+of order `size(A,2)` with `k` super-diagonals stored in the argument `A`. If
+`A[...,'U']` is used multiplication is done with `A`'s upper triangle, `L` is for the
 lower triangle. Return updated `y`.
 
 
 **Polynomials**
 
-- `y -= alpha*A['U',0:k]*x`
-- `y = beta*y - alpha*A[0:k,'U']*x`
-- `y = beta*y - alpha*A[0:k,'L']*x`
-- `y += alpha*A[0:k,'L']*x`
-- `y = alpha*A['L',0:k]*x + beta*y`
+- `y ±= alpha*A[0:k,uplo]*x`
+- `y = beta*y ± alpha*A[0:k,uplo]*x`
 
 **Example**
 
@@ -525,8 +515,14 @@ Return `alpha*A*B`, `alpha*A'*B`, `alpha*A*B'` or `alpha*A'*B'`.
 
 **Polynomials**
 
+- `A*B`
+- `A'*B`
 - `A*B'`
+- `A'*B'`
 - `alpha*A*B`
+- `alpha*A'*B`
+- `alpha*A*B'`
+- `alpha*A'*B'`
 
 **Example**
 
@@ -541,16 +537,19 @@ Return `alpha*A*B`, `alpha*A'*B`, `alpha*A*B'` or `alpha*A'*B'`.
 
 ### *gemm!*
 
-Update `C` as `alpha*A*B + beta*C` or the other three variants according to the 
+Update `C` as `alpha*A*B + beta*C` or the other three variants according to the
 combination of transposes of `A` and `B`. Return updated C.
 
 **Polynomials**
 
-- `C -= alpha*A*B`
-- `C = beta*C - alpha*A*B`
-- `C += alpha*A*B`
-- `C = 3.4*C - alpha*A'*B'`
-- `C = alpha*A'*B + beta*C`
+- `C ±= alpha*A*B`
+- `C ±= alpha*A'*B`
+- `C ±= alpha*A*B'`
+- `C ±= alpha*A'*B'`
+- `C = beta*C ± alpha*A*B`
+- `C = beta*C ± alpha*A'*B`
+- `C = beta*C ± alpha*A*B'`
+- `C = beta*C ± alpha*A'*B'`
 
 **Example**
 
@@ -578,8 +577,10 @@ Return `alpha*A*x` or `alpha*A'*x`.
 
 **Polynomials**
 
+- `A*x`
 - `A'*x`
 - `alpha*A*x`
+- `alpha*A'*x`
 
 **Example**
 
@@ -594,16 +595,15 @@ julia> macroexpand(:(SugarBLAS.@gemv alpha*A*x))
 
 ### *gemv!*
 
-Update the vector `y` as `alpha*A*x + beta*y` or `alpha*A'*x + beta*y`. 
+Update the vector `y` as `alpha*A*x + beta*y` or `alpha*A'*x + beta*y`.
 Return updated `y`.
 
 **Polynomials**
 
-- `y -= alpha*A*x`
-- `y = beta*y - alpha*A*x`
-- `y = beta*y - 1.5*A'*x`
-- `y += alpha*A*x`
-- `y = alpha*A*x + beta*y`
+- `y ±= alpha*A*x`
+- `y ±= alpha*A'*x`
+- `y = beta*y ± alpha*A*x`
+- `y = beta*y ± alpha*A'*x`
 
 **Example**
 
@@ -623,4 +623,91 @@ julia> macroexpand(:(SugarBLAS.@gemv! y += alpha*A*x))
 julia> macroexpand(:(SugarBLAS.@gemv! y = alpha*A*x + beta*y))
 :(Base.LinAlg.BLAS.gemv!('N',alpha,A,x,beta,y))
 ```
+
+### *symm*
+
+Return `alpha*A*B` or `alpha*B*A` according to `"symm"`. `A` is assumed to be
+symmetric. Only the `uplo` triangle of `A` is used (`'L'` for lower and `'U'` for upper).
+
+**Polynomials**
+
+- `A["symm", uplo]*B`
+- `A*B["symm", uplo]`
+- `alpha*A["symm", uplo]*B `
+- `alpha*A*B["symm", uplo]`
+
+**Example**
+
+```julia
+julia> macroexpand(:(SugarBLAS.@symm alpha*A["symm", 'L']*B))
+:(Base.LinAlg.BLAS.symm('L','L',alpha,A,B))
+
+julia> macroexpand(:(SugarBLAS.@symm A*B["symm", 'U']))
+:(Base.LinAlg.BLAS.symm('R','U',A,B))
+```
+
+### *symm!*
+
+Update `C` as `alpha*A*B + beta*C` or `alpha*B*A + beta*C` according to `"symm"`.
+`A` is assumed to be symmetric. Only the `uplo` triangle of `A` is used
+(`'L'` for lower and `'U'` for upper). Return updated `C`.
+
+**Polynomials**
+
+- `C = alpha*A["symm",uplo]*B`
+- `C = alpha*A*B["symm",uplo]`
+- `C = beta*C ± alpha*A["symm",uplo]*B`
+- `C = beta*C ± alpha*A*B["symm",uplo]`
+
+**Example**
+
+```julia
+julia> macroexpand(:(SugarBLAS.@symm! C -= alpha*A["symm", 'L']*B))
+:(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,1.0,C))
+
+julia> macroexpand(:(SugarBLAS.@symm! C = C - alpha*A["symm", 'U']*B))
+:(Base.LinAlg.BLAS.symm!('L','U',-alpha,A,B,1.0,C))
+
+julia> macroexpand(:(SugarBLAS.@symm! C = beta*C - alpha*A["symm", 'L']*B))
+:(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,beta,C))
+```
+
+### *symv*
+
+Return `alpha*A*x`. `A` is assumed to be symmetric. Only the `uplo` triangle of `A`
+is used (`'L'` for lower and `'U'` for upper).
+
+**Polynomials**
+
+- `A[uplo]*x`
+- `alpha*A[uplo]*x`
+
+```julia
+julia> macroexpand(:(SugarBLAS.@symv alpha*A['U']*x))
+:(Base.LinAlg.BLAS.symv('U',alpha,A,x))
+
+julia> macroexpand(:(SugarBLAS.@symv A['L']*x))
+:(Base.LinAlg.BLAS.symv('L',A,x))
+```
+
+### *symv!*
+
+Update the vector `y` as `alpha*A*x + beta*y`. `A` is assumed to be symmetric.
+Only the `uplo` triangle of `A` is used (`'L'` for lower and `'U'` for upper).
+Return updated y.
+
+**Polynomials**
+
+- `y ±= alpha*A[uplo]*x`
+- `y = beta*y ± alpha*A[uplo]*x`
+
+```julia
+julia> macroexpand(:(SugarBLAS.@symv! y -= alpha*A['U']*x))
+:(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,1.0,y))
+
+julia> macroexpand(:(SugarBLAS.@symv! y = y - alpha*A['L']*x))
+(Base.LinAlg.BLAS.symv!('L',-alpha,A,x,1.0,y))
+
+julia> macroexpand(:(SugarBLAS.@symv! y = beta*y + alpha*A['U']*x))
+:(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,beta,y))
 ```

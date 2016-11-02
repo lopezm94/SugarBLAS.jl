@@ -138,7 +138,7 @@ end
 """
     @copy!(expr)
 
-Transform expr to Base.copy! function.
+Copy all elements from collection `Y` to array `X`. Return `X`.
 
 **Polynomials**
 
@@ -154,7 +154,7 @@ end
 """
     @scale!(expr)
 
-Transform expr to Base.scale! function.
+Scale an array `X` by a scalar `a` overwriting `X` in-place.
 
 **Polynomials**
 
@@ -170,9 +170,9 @@ macro scale!(expr::Expr)
 end
 
 """
-    @scale!(expr)
+    @axpy!(expr)
 
-Transform expr to Base.LinAlg.axpy! function.
+Overwrite `Y` with `a*X + Y`. Return `Y`.
 
 **Polynomials**
 
@@ -193,7 +193,7 @@ end
 """
     @ger!(expr)
 
-Transform expr to Base.LinAlg.BLAS.ger! function.
+Rank-1 update of the matrix `A` with vectors `x` and `y` as `alpha*x*y' + A`.
 
 **Polynomials**
 
@@ -212,11 +212,13 @@ end
 """
     @syr!(expr)
 
-Transform expr to Base.LinAlg.BLAS.syr! function.
+Rank-1 update of the symmetric matrix `A` with vector `x` as `alpha*x*x.' + A`.
+When left side has `A['U']` the upper triangle of `A` is updated (`'L'` for lower
+triangle). Return `A`.
 
 **Polynomials**
 
-- `Y[uplo] ±= alpha*x*x.'`
+- `A[uplo] ±= alpha*x*x.'`
 """
 macro syr!(expr::Expr)
     expr = expand(expr)
@@ -233,7 +235,8 @@ end
 """
     @syrk!(expr)
 
-Transform expr to Base.LinAlg.BLAS.syrk! function.
+Return either the upper triangle or the lower triangle, depending on
+(`'U'` or `'L'`), of `alpha*A*A.'` or `alpha*A.'*A`.
 
 **Polynomials**
 
@@ -258,12 +261,14 @@ end
 """
     @syrk!(expr)
 
-Transform expr to Base.LinAlg.BLAS.syrk! function.
+Rank-k update of the symmetric matrix `C` as `alpha*A*A.' + beta*C` or
+`alpha*A.'*A + beta*C`. When the left hand side is`C['U']` the upper triangle of `C`
+is updated (`'L'` for lower triangle). Return `C`.
 
 **Polynomials**
 
 - `C[uplo] ±= alpha*A*A.'`
-- `C[uplo] ±= alpha*A.'*A`
+- `C[uplo] = beta*C ± alpha*A.'*A`
 """
 macro syrk!(expr::Expr)
     expr = expand(expr)
@@ -286,7 +291,9 @@ end
 """
     @her!(expr)
 
-Transform expr to Base.LinAlg.BLAS.her! function.
+Methods for complex arrays only. Rank-1 update of the Hermitian matrix `A`
+with vector `x` as `alpha*x*x' + A`. Whenthe left hand side is `A['U']`
+the upper triangle of `A` is updated (`'L'` for lower triangle). Return `A`.
 
 **Polynomials**
 
@@ -307,11 +314,14 @@ end
 """
     @herk(expr)
 
-Transform expr to Base.LinAlg.BLAS.herk function.
+Methods for complex arrays only. Returns either the upper triangle or the
+lower triangle, according to uplo ('U' or 'L'), of alpha*A*A' or alpha*A'*A,
+according to trans ('N' or 'T').
 
 **Polynomials**
 
 - `alpha*A*A' uplo=ul`
+- `alpha*A'*A uplo=ul`
 """
 macro herk(expr::Expr, kwargs...)
     kwargs = kwargs_to_dict(kwargs)
@@ -328,12 +338,14 @@ end
 """
     @herk!(expr)
 
-Transform expr to Base.LinAlg.BLAS.herk! function.
+Methods for complex arrays only. Rank-k update of the Hermitian matrix `C` as
+`alpha*A*A' + beta*C` or `alpha*A'*A + beta*C`. When the left hand side is `C['U']`
+the upper triangle of `C` is updated (`'L'` for lower triangle). Return `C`.
 
 **Polynomials**
 
 - `C[uplo] ±= alpha*A*A'`
-- `C[uplo] ±= alpha*A'*A`
+- `C[uplo] = beta*C ± alpha*A'*A`
 """
 macro herk!(expr::Expr)
     expr = expand(expr)
@@ -356,7 +368,8 @@ end
 """
     @gbmv(expr)
 
-Transform expr to Base.LinAlg.BLAS.gbmv function.
+Return `alpha*A*x` or `alpha*A'*x`. The matrix `A` is a general band matrix
+of dimension `m` by `size(A,2)` with `kl` sub-diagonals and `ku` super-diagonals.
 
 **Polynomials**
 
@@ -373,12 +386,14 @@ end
 """
     @gbmv!(expr)
 
-Transform expr to Base.LinAlg.BLAS.gbmv! function.
+Update vector `y` as `alpha*A*x + beta*y` or `alpha*A'*x + beta*y`.
+The matrix `A` is a general band matrix of dimension `m` by `size(A,2)` with
+`kl` sub-diagonals and `ku` super-diagonals. Return the updated `y`.
 
 **Polynomials**
 
-- `C ±= alpha*A[kl:ku,h=m]*x`
-- `C ±= alpha*A[h=m,kl:ku]'*x`
+- `y ±= alpha*A[kl:ku,h=m]*x`
+- `y = beta*y ± alpha*A[h=m,kl:ku]'*x`
 """
 macro gbmv!(expr::Expr)
     expr = expand(expr)
@@ -398,7 +413,8 @@ end
 """
     @sbmv(expr)
 
-Transform expr to Base.LinAlg.BLAS.sbmv function.
+Return `alpha*A*x` where `A` is a symmetric band matrix of order `size(A,2)` with
+`k` super-diagonals stored in the argument `A`.
 
 **Polynomials**
 
@@ -416,11 +432,15 @@ end
 """
     @sbmv!(expr)
 
-Transform expr to Base.LinAlg.BLAS.sbmv! function.
+Update vector `y` as `alpha*A*x + beta*y` where `A` is a a symmetric band matrix
+of order `size(A,2)` with `k` super-diagonals stored in the argument `A`. If
+`A[...,'U']` is used multiplication is done with `A`'s upper triangle, `L` is for the
+lower triangle. Return updated `y`.
 
 **Polynomials**
 
 - `y ±= alpha*A[0:k,uplo]*x`
+- `y = beta*y ± alpha*A[0:k,uplo]*x`
 """
 macro sbmv!(expr::Expr)
     expr = expand(expr)
@@ -438,7 +458,7 @@ end
 """
     @gemm(expr)
 
-Transform expr to Base.LinAlg.BLAS.gemm function.
+Return `alpha*A*B`, `alpha*A'*B`, `alpha*A*B'` or `alpha*A'*B'`.
 
 **Polynomials**
 
@@ -468,7 +488,8 @@ end
 """
     @gemm!(expr)
 
-Transform expr to Base.LinAlg.BLAS.gemm! function.
+Update `C` as `alpha*A*B + beta*C` or the other three variants according to the
+combination of transposes of `A` and `B`. Return updated C.
 
 **Polynomials**
 
@@ -499,7 +520,7 @@ end
 """
     @gemv(expr)
 
-Transform expr to Base.LinAlg.BLAS.gemv function.
+Return `alpha*A*x` or `alpha*A'*x`.
 
 **Polynomials**
 
@@ -523,7 +544,8 @@ end
 """
     @gemv!(expr)
 
-Transform expr to Base.LinAlg.BLAS.gemv! function.
+Update the vector `y` as `alpha*A*x + beta*y` or `alpha*A'*x + beta*y`.
+Return updated `y`.
 
 **Polynomials**
 
@@ -549,30 +571,29 @@ end
 """
     @symm(expr)
 
-Transform expr to Base.LinAlg.BLAS.symm function.
+Return `alpha*A*B` or `alpha*B*A` according to `"symm"`. `A` is assumed to be
+symmetric. Only the `uplo` triangle of `A` is used (`'L'` for lower and `'U'` for upper).
 
 **Polynomials**
 
-- `A[:symm]*B uplo=ul`
-- `A*B[:symm] uplo=ul`
-- `alpha*A[:symm]*B uplo=ul`
-- `alpha*A*B[:symm] uplo=ul`
+- `A["symm", uplo]*B`
+- `A*B["symm", uplo]`
+- `alpha*A["symm", uplo]*B `
+- `alpha*A*B["symm", uplo]`
 """
-macro symm(expr::Expr, kwargs...)
-    kwargs = kwargs_to_dict(kwargs)
-    uplo = kwargs[:uplo]
+macro symm(expr::Expr)
     if @match(expr, alpha*A*B)
         side = @case begin
-            @match(A, A[symm]) && (symm.args[1] == :symm)   => 'L'
-            @match(B, B[symm]) && (symm.args[1] == :symm)   => 'R'
-            otherwise                                       => error("No match found")
+            @match(A, A["symm", uplo])  => 'L'
+            @match(B, B["symm", uplo])  => 'R'
+            otherwise                   => error("No match found")
         end
         @call Base.LinAlg.BLAS.symm(side,uplo,alpha,A,B)
     elseif @match(expr, A*B)
         side = @case begin
-            @match(A, A[symm]) && (symm.args[1] == :symm)   => 'L'
-            @match(B, B[symm]) && (symm.args[1] == :symm)   => 'R'
-            otherwise                                       => error("No match found")
+            @match(A, A["symm", uplo])  => 'L'
+            @match(B, B["symm", uplo])  => 'R'
+            otherwise                   => error("No match found")
         end
         @call Base.LinAlg.BLAS.symm(side,uplo,A,B)
     else
@@ -583,27 +604,29 @@ end
 """
     @symm!(expr)
 
-Transform expr to Base.LinAlg.BLAS.symm! function.
+Update `C` as `alpha*A*B + beta*C` or `alpha*B*A + beta*C` according to `"symm"`.
+`A` is assumed to be symmetric. Only the `uplo` triangle of `A` is used
+(`'L'` for lower and `'U'` for upper). Return updated `C`.
 
 **Polynomials**
 
-- `C[uplo] = alpha*A[:symm]*B`
-- `C[uplo] = alpha*A*B[:symm]`
-- `C[uplo] = beta*C ± alpha*A[:symm]*B`
-- `C[uplo] = beta*C ± alpha*A*B[:symm]`
+- `C = alpha*A["symm",uplo]*B`
+- `C = alpha*A*B["symm",uplo]`
+- `C = beta*C ± alpha*A["symm",uplo]*B`
+- `C = beta*C ± alpha*A*B["symm",uplo]`
 """
 macro symm!(expr::Expr)
     expr = expand(expr)
-    @match(expr, C[uplo] = right) || error("No match found")
+    @match(expr, C = right) || error("No match found")
     f = @case begin
         @match(right, alpha*A*B + D)    => identity
         @match(right, D - alpha*A*B)    => (-)
         otherwise                       => error("No match found")
     end
     side = @case begin
-        @match(A, A[symm]) && (symm.args[1] == :symm)   => 'L'
-        @match(B, B[symm]) && (symm.args[1] == :symm)   => 'R'
-        otherwise                                       => error("No match found")
+        @match(A, A["symm", uplo])   => 'L'
+        @match(B, B["symm", uplo])   => 'R'
+        otherwise                    => error("No match found")
     end
     @match(D, beta*D) || (beta = 1.0)
     (@match(D, D[crap]) && (C == D)) || (C == D) || error("No match found")
@@ -613,16 +636,15 @@ end
 """
     @symv(expr)
 
-Transform expr to Base.LinAlg.BLAS.symv function.
+Return `alpha*A*x`. `A` is assumed to be symmetric. Only the `uplo` triangle of `A`
+is used (`'L'` for lower and `'U'` for upper).
 
 **Polynomials**
 
 - `A[uplo]*x`
 - `alpha*A[uplo]*x`
 """
-macro symv(expr::Expr, kwargs...)
-    kwargs = kwargs_to_dict(kwargs)
-    uplo = kwargs[:uplo]
+macro symv(expr::Expr)
     @case begin
         @match(expr, alpha*A[uplo]*x)   => @call Base.LinAlg.BLAS.symv(uplo,alpha,A,x)
         @match(expr, A[uplo]*x)         => @call Base.LinAlg.BLAS.symv(uplo,A,x)
@@ -633,7 +655,9 @@ end
 """
     @symv!(expr)
 
-Transform expr to Base.LinAlg.BLAS.symv! function.
+Update the vector `y` as `alpha*A*x + beta*y`. `A` is assumed to be symmetric.
+Only the `uplo` triangle of `A` is used (`'L'` for lower and `'U'` for upper).
+Return updated y.
 
 **Polynomials**
 
