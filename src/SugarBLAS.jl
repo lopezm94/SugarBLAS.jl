@@ -70,24 +70,51 @@ macro call(expr::Expr)
     esc(:(esc($(wrap(expr)))))
 end
 
+#Version 0.6 downwards
+function construct_case_statement(lines::Vector, ::Type{Val{false}})
+  failproof(s) = s
+  failproof(s::Char) = string("'",s,"'")
+  line = lines[1]
+  exec = "if $(line.args[2])\n$(failproof(line.args[3]))\n"
+  for line in lines[2:end-1]
+      (line.head == :line) && continue
+      (line.head == :call && line.args[1] == :(=>)) || error("Each condition must be followed by `=>`")
+      exec *= "elseif $(line.args[2])\n$(failproof(line.args[3]))\n"
+  end
+  line = lines[end]
+  exec *= (line.args[2] == :otherwise) && ("else\n$(failproof(line.args[3]))\n")
+  exec *= "end"
+end
+
+#Version 0.6 upwards
+function construct_case_statement(lines::Vector, ::Type{Val{true}})
+  failproof(s) = s
+  failproof(s::Char) = string("'",s,"'")
+  line = lines[1]
+  exec = "if $(line.args[1])\n$(failproof(line.args[2]))\n"
+  for line in lines[2:end-1]
+      (line.head == :line) && continue
+      line.head == :(=>) || error("Each condition must be followed by `=>`")
+      exec *= "elseif $(line.args[1])\n$(failproof(line.args[2]))\n"
+  end
+  line = lines[end]
+  exec *= (line.args[1] == :otherwise) && ("else\n$(failproof(line.args[2]))\n")
+  exec *= "end"
+end
+
+"""
+Transforms the custom case expression to a string representing the equivalent if-then-else block of code.
+"""
+construct_case_statement(lines::Vector) = construct_case_statement(lines, Val{VERSION>v"0.6.0"})
+
+
 """
 Sugar for if-then-else expression. Beautiful for one liners.
 """
 macro case(expr::Expr)
     (expr.head == :block) || error("@case statement must be followed by `begin ... end`")
     lines = filter(expr::Expr -> expr.head != :line, expr.args)
-    failproof(s) = s
-    failproof(s::Char) = string("'",s,"'")
-    line = lines[1]
-    exec = "if $(line.args[1])\n$(failproof(line.args[2]))\n"
-    for line in lines[2:end-1]
-        (line.head == :line) && continue
-        line.head == :(=>) || error("Each condition must be followed by `=>`")
-        exec *= "elseif $(line.args[1])\n$(failproof(line.args[2]))\n"
-    end
-    line = lines[end]
-    exec *= (line.args[1] == :otherwise) && ("else\n$(failproof(line.args[2]))\n")
-    exec *= "end"
+    exec = construct_case_statement(lines)
     esc(parse(exec))
 end
 
