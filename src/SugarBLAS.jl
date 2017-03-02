@@ -71,7 +71,7 @@ macro call(expr::Expr)
 end
 
 #Version 0.6 downwards
-function construct_case_statement(lines::Vector, ::Type{Val{false}})
+function construct_case_statement(lines::Vector, ::Type{Val{true}})
   failproof(s) = s
   failproof(s::Char) = string("'",s,"'")
   line = lines[1]
@@ -87,7 +87,7 @@ function construct_case_statement(lines::Vector, ::Type{Val{false}})
 end
 
 #Version 0.6 upwards
-function construct_case_statement(lines::Vector, ::Type{Val{true}})
+function construct_case_statement(lines::Vector, ::Type{Val{false}})
   failproof(s) = s
   failproof(s::Char) = string("'",s,"'")
   line = lines[1]
@@ -105,7 +105,7 @@ end
 """
 Transforms the custom case expression to a string representing the equivalent if-then-else block of code.
 """
-construct_case_statement(lines::Vector) = construct_case_statement(lines, Val{VERSION>v"0.6.0"})
+construct_case_statement(lines::Vector) = construct_case_statement(lines, Val{VERSION>=v"0.6.0-dev"})
 
 
 """
