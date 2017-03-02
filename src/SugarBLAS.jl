@@ -70,7 +70,12 @@ macro call(expr::Expr)
     esc(:(esc($(wrap(expr)))))
 end
 
-#Version 0.6 downwards
+#Changes made in Julia parser in v"0.6.0-dev.2613".
+#JuliaLang Issue: https://github.com/JuliaLang/julia/pull/20327
+"""
+Transforms the custom case expression to a string representing the equivalent if-then-else block of code.
+"""
+construct_case_statement(lines::Vector) = construct_case_statement(lines, Val{VERSION>=v"0.6.0-dev.2613"})
 function construct_case_statement(lines::Vector, ::Type{Val{true}})
   failproof(s) = s
   failproof(s::Char) = string("'",s,"'")
@@ -85,8 +90,6 @@ function construct_case_statement(lines::Vector, ::Type{Val{true}})
   exec *= (line.args[2] == :otherwise) && ("else\n$(failproof(line.args[3]))\n")
   exec *= "end"
 end
-
-#Version 0.6 upwards
 function construct_case_statement(lines::Vector, ::Type{Val{false}})
   failproof(s) = s
   failproof(s::Char) = string("'",s,"'")
@@ -101,12 +104,6 @@ function construct_case_statement(lines::Vector, ::Type{Val{false}})
   exec *= (line.args[1] == :otherwise) && ("else\n$(failproof(line.args[2]))\n")
   exec *= "end"
 end
-
-"""
-Transforms the custom case expression to a string representing the equivalent if-then-else block of code.
-"""
-construct_case_statement(lines::Vector) = construct_case_statement(lines, Val{VERSION>=v"0.6.0-dev"})
-
 
 """
 Sugar for if-then-else expression. Beautiful for one liners.
