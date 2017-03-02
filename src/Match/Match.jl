@@ -27,21 +27,26 @@ _iscommutative{T<:Val}(::Type{T}) = false
 Iterator of all possible permutations.
 """
 permutations(r::Range) = permutations(collect(r))
-permutations(v::Vector) = @task permfactory(v)
+function permutations{T}(v::Vector{T})
+  c = Channel{Vector{T}}(1)
+  @schedule permfactory(v, c)
+  c
+end
 
-function permfactory{T}(v::Vector{T})
+function permfactory{T}(v::Vector{T}, c::Channel{Vector{T}})
     stack = Vector{Tuple{Vector{T}, Vector{T}}}()
     push!(stack, (Vector{T}(), v))
     while !isempty(stack)
         state = pop!(stack)
         taken = copy(state[1])
         left = copy(state[2])
-        isempty(left) && (produce(taken); continue)
+        isempty(left) && (put!(c,taken); continue)
         for i in 1:length(left)
             new_state = (push!(copy(taken), left[i]), vcat(left[1:i-1],left[i+1:end]))
             push!(stack, new_state)
         end
     end
+    put!(c,Vector{T}())
 end
 
 """
@@ -94,7 +99,9 @@ function commutative_match(offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     n = length(eargs)-offset
     (!isref(expr) | match(symbols, eargs[1], margs[1])) || return false
-    for perm in permutations(1+offset:length(eargs))
+    chnl = permutations(1+offset:length(eargs))
+    for perm in chnl
+        isempty(perm) && break
         success = true
         d = copy(symbols)
         for i in 1:n
