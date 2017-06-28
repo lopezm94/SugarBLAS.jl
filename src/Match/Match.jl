@@ -3,6 +3,8 @@ Extract expression sub-trees.
 """
 module Match
 
+using Combinatorics
+
 export @match
 export unkeyword!
 
@@ -22,32 +24,6 @@ iscommutative(op::Symbol) = _iscommutative(Val{op})
 
 _iscommutative(::Type{Val{:(+)}}) = true
 _iscommutative{T<:Val}(::Type{T}) = false
-
-"""
-Iterator of all possible permutations.
-"""
-permutations(r::Range) = permutations(collect(r))
-function permutations{T}(v::Vector{T})
-  c = Channel{Vector{T}}(1)
-  @schedule permfactory(v, c)
-  c
-end
-
-function permfactory{T}(v::Vector{T}, c::Channel{Vector{T}})
-    stack = Vector{Tuple{Vector{T}, Vector{T}}}()
-    push!(stack, (Vector{T}(), v))
-    while !isempty(stack)
-        state = pop!(stack)
-        taken = copy(state[1])
-        left = copy(state[2])
-        isempty(left) && (put!(c,taken); continue)
-        for i in 1:length(left)
-            new_state = (push!(copy(taken), left[i]), vcat(left[1:i-1],left[i+1:end]))
-            push!(stack, new_state)
-        end
-    end
-    put!(c,Vector{T}())
-end
 
 """
 Output true if dictionary 'd' has a key 's' with a different value than 'v'.
@@ -99,8 +75,9 @@ function commutative_match(offset, symbols, expr, formula)
     eargs, margs = expr.args, formula.args
     n = length(eargs)-offset
     (!isref(expr) | match(symbols, eargs[1], margs[1])) || return false
-    chnl = permutations(1+offset:length(eargs))
-    for perm in chnl
+    indexes = collect(1+offset:length(eargs))
+    perms = permutations(indexes)
+    for perm in perms
         isempty(perm) && break
         success = true
         d = copy(symbols)
