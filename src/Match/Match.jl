@@ -23,7 +23,7 @@ end
 iscommutative(op::Symbol) = _iscommutative(Val{op})
 
 _iscommutative(::Type{Val{:(+)}}) = true
-_iscommutative{T<:Val}(::Type{T}) = false
+_iscommutative(::Type{T}) where T<:Val = false
 
 """
 Output true if dictionary 'd' has a key 's' with a different value than 'v'.
@@ -109,11 +109,11 @@ macro match(expr, formula)
     exec = quote end
     push!(exec.args, :(symbols = Dict{Symbol, Any}()))
     aux3 = esc(:($expr))
-    push!(exec.args, :(success = $match(symbols, $aux3, parse($aux1))))
+    push!(exec.args, :(success = $match(symbols, $aux3, Match.parse($aux1))))
     for var in vars
         aux2 = "$var"
         aux3 = esc(:($var))
-        push!(exec.args, :(success && ($aux3 = symbols[parse($aux2)])))
+        push!(exec.args, :(success && ($aux3 = symbols[Match.parse($aux2)])))
     end
     push!(exec.args, :(success))
     exec
