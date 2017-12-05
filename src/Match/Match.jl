@@ -3,6 +3,7 @@ Extract expression sub-trees.
 """
 module Match
 
+using Compat
 using Combinatorics
 
 export @match
@@ -23,7 +24,7 @@ end
 iscommutative(op::Symbol) = _iscommutative(Val{op})
 
 _iscommutative(::Type{Val{:(+)}}) = true
-_iscommutative(::Type{T}) where T<:Val = false
+@compat _iscommutative(::Type{T}) where T<:Val = false
 
 """
 Output true if dictionary 'd' has a key 's' with a different value than 'v'.
