@@ -51,7 +51,7 @@ wrap(expr::Symbol) = QuoteNode(expr)
 function wrap(expr::Expr)
     head = QuoteNode(expr.head)
     func = string(expr.args[1])
-    :(Expr($head, parse($func), $(expr.args[2:end]...)))
+    :(Expr($head, Meta.parse($func), $(expr.args[2:end]...)))
 end
 
 """
@@ -110,10 +110,16 @@ Sugar for if-then-else expression. Beautiful for one liners.
 """
 macro case(expr::Expr)
     (expr.head == :block) || error("@case statement must be followed by `begin ... end`")
-    lines = filter(expr::Expr -> expr.head != :line, expr.args)
+    lines = filter(line -> !is_metadata(line), expr.args)
     exec = construct_case_statement(lines)
-    esc(parse(exec))
+    esc(Meta.parse(exec))
 end
+
+"""
+Filter metadata lines that often appear in Julia expressions
+"""
+is_metadata(line::Expr) = line.head == :line #Needed for versions older than v0.7-DEV
+is_metadata(::LineNumberNode) = true
 
 ###############
 # BLAS macros #

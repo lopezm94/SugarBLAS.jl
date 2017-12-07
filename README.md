@@ -30,10 +30,10 @@ Pkg.add("SugarBLAS")
 it is correctly parenthesized putting more variables won't be an issue.
 
 ```julia
-julia> macroexpand(:(@blas! Y = (a*b +c)*(X*Z) + Y))
+julia> macroexpand(SugarBLAS, :(@blas! Y = (a*b +c)*(X*Z) + Y))
 :(Base.LinAlg.axpy!(a * b + c,X * Z,Y))
 
-julia> macroexpand(:(@blas! X = (a+c)*X))
+julia> macroexpand(SugarBLAS, :(@blas! X = (a+c)*X))
 :(scale!(a + c,X))
 ```
 
@@ -52,7 +52,7 @@ Y = (a*b +c)*(X*Z) + Y
 Both `*=` and `+=` are supported. `*=` can only be used for scaling given that is pretty unambigous.
 
 ```julia
-julia> macroexpand(:(@blas! Y += X)) == macroexpand(:(@blas! Y = Y + X))
+julia> macroexpand(SugarBLAS, :(@blas! Y += X)) == macroexpand(SugarBLAS, :(@blas! Y = Y + X))
 true
 ```
 
@@ -77,7 +77,7 @@ The package assumes types by its position in the multiplication, this doesn't ha
 with addition and that's why it conserves its property.
 
 ```julia
-julia> macroexpand(:(@blas! Y = X + Y)) == macroexpand(:(@blas! Y = Y + X))
+julia> macroexpand(SugarBLAS, :(@blas! Y = X + Y)) == macroexpand(SugarBLAS, :(@blas! Y = Y + X))
 true
 ```
 
@@ -130,7 +130,7 @@ Scale an array `X` by a scalar `a` overwriting `X` in-place.
 **Example**
 
 ```julia
-julia> macroexpand(:(@blas! X *= a))
+julia> macroexpand(SugarBLAS, :(@blas! X *= a))
 :(scale!(a,X))
 ```
 
@@ -147,10 +147,10 @@ Overwrite `Y` with `a*X + Y`. Return `Y`.
 **Example**
 
 ```julia
-julia> macroexpand(:(@blas! Y += X))
+julia> macroexpand(SugarBLAS, :(@blas! Y += X))
 :(Base.LinAlg.axpy!(1.0,X,Y))
 
-julia> macroexpand(:(@blas! Y += a*X))
+julia> macroexpand(SugarBLAS, :(@blas! Y += a*X))
 :(Base.LinAlg.axpy!(a,X,Y))
 ```
 
@@ -166,7 +166,7 @@ Copy all elements from collection `Y` to array `X`. Return `X`.
 **Example**
 
 ```julia
-julia> macroexpand(:(@blas! X = Y))
+julia> macroexpand(SugarBLAS, :(@blas! X = Y))
 :(copy!(X,Y))
 ```
 
@@ -188,7 +188,7 @@ Scale an array `X` by a scalar `a` overwriting `X` in-place.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@scale! X *= a))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@scale! X *= a))
 :(scale!(a,X))
 ```
 
@@ -205,10 +205,10 @@ Overwrite `Y` with `a*X + Y`. Return `Y`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@axpy! Y += X))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@axpy! Y += X))
 :(Base.LinAlg.axpy!(1.0,X,Y))
 
-julia> macroexpand(:(SugarBLAS.@axpy! Y += a*X))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@axpy! Y += a*X))
 :(Base.LinAlg.axpy!(a,X,Y))
 ```
 
@@ -224,7 +224,7 @@ Copy all elements from collection `Y` to array `X`. Return `X`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@copy! X = Y))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@copy! X = Y))
 :(copy!(X,Y))
 ```
 
@@ -240,10 +240,10 @@ Rank-1 update of the matrix `A` with vectors `x` and `y` as `alpha*x*y' + A`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@ger! A -= alpha*x*y'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@ger! A -= alpha*x*y'))
 :(Base.LinAlg.BLAS.ger!(-alpha,x,y,A))
 
-julia> macroexpand(:(SugarBLAS.@ger! A += alpha*x*y'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@ger! A += alpha*x*y'))
 :(Base.LinAlg.BLAS.ger!(alpha,x,y,A))
 ```
 
@@ -261,10 +261,10 @@ triangle). Return `A`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@syr! A['U'] -= alpha*x*x.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] -= alpha*x*x.'))
 :(Base.LinAlg.BLAS.syr!('U',-alpha,x,A))
 
-julia> macroexpand(:(SugarBLAS.@syr! A['L'] += alpha*x*x.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] += alpha*x*x.'))
 :(Base.LinAlg.BLAS.syr!('L',alpha,x,A))
 ```
 
@@ -282,10 +282,10 @@ Return either the upper triangle or the lower triangle, depending on
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@syrk alpha*A*A.' uplo='U'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A*A.' uplo='U'))
 :(Base.LinAlg.BLAS.syrk('U','N',alpha,A))
 
-julia> macroexpand(:(SugarBLAS.@syrk alpha*A.'*A uplo='L'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A.'*A uplo='L'))
 :(Base.LinAlg.BLAS.syrk('L','T',alpha,A))
 ```
 
@@ -304,16 +304,16 @@ is updated (`'L'` for lower triangle). Return `C`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@syrk! C['U'] -= alpha*A*A.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] -= alpha*A*A.'))
 :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@syrk! C['L'] = beta*C - alpha*A.'*A))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = beta*C - alpha*A.'*A))
 :(Base.LinAlg.BLAS.syrk!('L','T',-alpha,A,beta,C))
 
-julia> macroexpand(:(SugarBLAS.@syrk! C['U'] += alpha*A*A.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] += alpha*A*A.'))
 :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@syrk! C['L'] = alpha*A.'*A + beta*C))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = alpha*A.'*A + beta*C))
 :(Base.LinAlg.BLAS.syrk!('L','T',alpha,A,beta,C))
 ```
 
@@ -331,13 +331,13 @@ the upper triangle of `A` is updated (`'L'` for lower triangle). Return `A`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@her! A['U'] -= alpha*x*x'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@her! A['U'] -= alpha*x*x'))
 :(Base.LinAlg.BLAS.her!('U',-alpha,x,A))
 
-julia> macroexpand(:(SugarBLAS.@her! A['L'] = A - alpha*x*x'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@her! A['L'] = A - alpha*x*x'))
 :(Base.LinAlg.BLAS.her!('L',-alpha,x,A))
 
-julia> macroexpand(:(SugarBLAS.@her! A['U'] += alpha*x*x'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@her! A['U'] += alpha*x*x'))
 :(Base.LinAlg.BLAS.her!('U',alpha,x,A))
 ```
 
@@ -356,16 +356,16 @@ according to trans ('N' or 'T').
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@herk alpha*A*A' uplo='U'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk alpha*A*A' uplo='U'))
 :(Base.LinAlg.BLAS.herk('U','N',alpha,A))
 
-julia> macroexpand(:(SugarBLAS.@herk alpha*A'*A uplo='U'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk alpha*A'*A uplo='U'))
 :(Base.LinAlg.BLAS.herk('U','T',alpha,A))
 
-julia> macroexpand(:(SugarBLAS.@herk alpha*A*A' uplo='L'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk alpha*A*A' uplo='L'))
 :(Base.LinAlg.BLAS.herk('L','N',alpha,A))
 
-julia> macroexpand(:(SugarBLAS.@herk alpha*A'*A uplo='L'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk alpha*A'*A uplo='L'))
 :(Base.LinAlg.BLAS.herk('L','T',alpha,A))
 ```
 
@@ -384,19 +384,19 @@ the upper triangle of `C` is updated (`'L'` for lower triangle). Return `C`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@herk! C['L'] -= alpha*A'*A))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk! C['L'] -= alpha*A'*A))
 :(Base.LinAlg.BLAS.herk!('L','T',-alpha,A,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@herk! C['U'] = C - alpha*A*A'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk! C['U'] = C - alpha*A*A'))
 :(Base.LinAlg.BLAS.herk!('U','N',-alpha,A,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@herk! C['L'] = beta*C - alpha*A'*A))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk! C['L'] = beta*C - alpha*A'*A))
 :(Base.LinAlg.BLAS.herk!('L','T',-alpha,A,beta,C))
 
-julia> macroexpand(:(SugarBLAS.@herk! C['U'] += alpha*A*A'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk! C['U'] += alpha*A*A'))
 :(Base.LinAlg.BLAS.herk!('U','N',alpha,A,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@herk! C['L'] = alpha*A'*A + beta*C))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@herk! C['L'] = alpha*A'*A + beta*C))
 :(Base.LinAlg.BLAS.herk!('L','T',alpha,A,beta,C))
 ```
 
@@ -414,10 +414,10 @@ of dimension `m` by `size(A,2)` with `kl` sub-diagonals and `ku` super-diagonals
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@gbmv alpha*A[0:ku,h=2]*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gbmv alpha*A[0:ku,h=2]*x))
 :(Base.LinAlg.BLAS.gbmv('N',2,0,ku,alpha,A,x))
 
-julia> macroexpand(:(SugarBLAS.@gbmv alpha*A[h=m,-kl:ku]*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gbmv alpha*A[h=m,-kl:ku]*x))
 :(Base.LinAlg.BLAS.gbmv('N',m,kl,ku,alpha,A,x))
 ```
 
@@ -436,19 +436,19 @@ The matrix `A` is a general band matrix of dimension `m` by `size(A,2)` with
 **Example**
 
 ```julia
-@test macroexpand(:(SugarBLAS.@gbmv! y -= alpha*A[h=m,-kl:ku]*x))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@gbmv! y -= alpha*A[h=m,-kl:ku]*x))
 :(Base.LinAlg.BLAS.gbmv!('N',m,kl,ku,-alpha,A,x,1.0,y))
 
-@test macroexpand(:(SugarBLAS.@gbmv! y = beta*y - alpha*A[h=2, 0:ku]'*x))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@gbmv! y = beta*y - alpha*A[h=2, 0:ku]'*x))
 :(Base.LinAlg.BLAS.gbmv!('T',2,0,ku,-alpha,A,x,beta,y))
 
-@test macroexpand(:(SugarBLAS.@gbmv! y = alpha*A[0:ku,h=2]*x + y))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@gbmv! y = alpha*A[0:ku,h=2]*x + y))
 :(Base.LinAlg.BLAS.gbmv!('N',2,0,ku,alpha,A,x,1.0,y))
 
-@test macroexpand(:(SugarBLAS.@gbmv! y += alpha*A[h=m,-kl:ku]*x))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@gbmv! y += alpha*A[h=m,-kl:ku]*x))
 :(Base.LinAlg.BLAS.gbmv!('N',m,kl,ku,alpha,A,x,1.0,y))
 
-@test macroexpand(:(SugarBLAS.@gbmv! y = alpha*A[kl:ku, h=m]'*x + beta*y))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@gbmv! y = alpha*A[kl:ku, h=m]'*x + beta*y))
 :(Base.LinAlg.BLAS.gbmv!('T',m,-kl,ku,alpha,A,x,beta,y))
 ```
 
@@ -467,10 +467,10 @@ Return `alpha*A*x` where `A` is a symmetric band matrix of order `size(A,2)` wit
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@sbmv A['U',0:k]*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@sbmv A['U',0:k]*x))
 :(Base.LinAlg.BLAS.sbmv('U',k,A,x))
 
-julia> macroexpand(:(SugarBLAS.@sbmv alpha*A[0:k,'L']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@sbmv alpha*A[0:k,'L']*x))
 :(Base.LinAlg.BLAS.sbmv('L',k,alpha,A,x))
 ```
 
@@ -491,19 +491,19 @@ lower triangle. Return updated `y`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@sbmv! y -= alpha*A['U',0:k]*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@sbmv! y -= alpha*A['U',0:k]*x))
 :(Base.LinAlg.BLAS.sbmv!('U',k,-alpha,A,x,1.0,y))
 
-julia> macroexpand(:(SugarBLAS.@sbmv! y = beta*y - alpha*A[0:k,'U']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@sbmv! y = beta*y - alpha*A[0:k,'U']*x))
 :(Base.LinAlg.BLAS.sbmv!('U',k,-alpha,A,x,beta,y))
 
-julia> macroexpand(:(SugarBLAS.@sbmv! y = beta*y - alpha*A[0:k,'L']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@sbmv! y = beta*y - alpha*A[0:k,'L']*x))
 :(Base.LinAlg.BLAS.sbmv!('L',k,-alpha,A,x,beta,y))
 
-julia> macroexpand(:(SugarBLAS.@sbmv! y += alpha*A[0:k,'L']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@sbmv! y += alpha*A[0:k,'L']*x))
 :(Base.LinAlg.BLAS.sbmv!('L',k,alpha,A,x,1.0,y))
 
-julia> macroexpand(:(SugarBLAS.@sbmv! y = alpha*A['L',0:k]*x + beta*y))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@sbmv! y = alpha*A['L',0:k]*x + beta*y))
 :(Base.LinAlg.BLAS.sbmv!('L',k,alpha,A,x,beta,y))
 ```
 
@@ -527,10 +527,10 @@ Return `alpha*A*B`, `alpha*A'*B`, `alpha*A*B'` or `alpha*A'*B'`.
 **Example**
 
 ```julia
-@test macroexpand(:(SugarBLAS.@gemm alpha*A*B))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@gemm alpha*A*B))
 :(Base.LinAlg.BLAS.gemm('N','N',alpha,A,B))
 
-@test macroexpand(:(SugarBLAS.@gemm A*B'))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@gemm A*B'))
 :(Base.LinAlg.BLAS.gemm('N','T',A,B))
 ```
 
@@ -554,19 +554,19 @@ combination of transposes of `A` and `B`. Return updated C.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@gemm! C -= alpha*A*B))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemm! C -= alpha*A*B))
 :(Base.LinAlg.BLAS.gemm!('N','N',-alpha,A,B,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@gemm! C = beta*C - alpha*A*B))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemm! C = beta*C - alpha*A*B))
 :(Base.LinAlg.BLAS.gemm!('N','N',-alpha,A,B,beta,C))
 
-julia> macroexpand(:(SugarBLAS.@gemm! C += alpha*A*B))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemm! C += alpha*A*B))
 :(Base.LinAlg.BLAS.gemm!('N','N',alpha,A,B,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@gemm! C = 3.4*C - alpha*A'*B'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemm! C = 3.4*C - alpha*A'*B'))
 :(Base.LinAlg.BLAS.gemm!('T','T',-alpha,A,B,3.4,C))
 
-julia> macroexpand(:(SugarBLAS.@gemm! C = alpha*A'*B + beta*C))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemm! C = alpha*A'*B + beta*C))
 :(Base.LinAlg.BLAS.gemm!('T','N',alpha,A,B,beta,C))
 ```
 
@@ -585,10 +585,10 @@ Return `alpha*A*x` or `alpha*A'*x`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@gemv A'*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemv A'*x))
 :(Base.LinAlg.BLAS.gemv('T',A,x))
 
-julia> macroexpand(:(SugarBLAS.@gemv alpha*A*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemv alpha*A*x))
 :(Base.LinAlg.BLAS.gemv('N',alpha,A,x))
 ```
 
@@ -608,19 +608,19 @@ Return updated `y`.
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@gemv! y -= alpha*A*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemv! y -= alpha*A*x))
 :(Base.LinAlg.BLAS.gemv!('N',-alpha,A,x,1.0,y))
 
-julia> macroexpand(:(SugarBLAS.@gemv! y = beta*y - alpha*A*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemv! y = beta*y - alpha*A*x))
 :(Base.LinAlg.BLAS.gemv!('N',-alpha,A,x,beta,y))
 
-julia> macroexpand(:(SugarBLAS.@gemv! y = beta*y - 1.5*A'*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemv! y = beta*y - 1.5*A'*x))
 :(Base.LinAlg.BLAS.gemv!('T',-1.5,A,x,beta,y))
 
-julia> macroexpand(:(SugarBLAS.@gemv! y += alpha*A*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemv! y += alpha*A*x))
 :(Base.LinAlg.BLAS.gemv!('N',alpha,A,x,1.0,y))
 
-julia> macroexpand(:(SugarBLAS.@gemv! y = alpha*A*x + beta*y))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@gemv! y = alpha*A*x + beta*y))
 :(Base.LinAlg.BLAS.gemv!('N',alpha,A,x,beta,y))
 ```
 
@@ -639,10 +639,10 @@ symmetric. Only the `uplo` triangle of `A` is used (`'L'` for lower and `'U'` fo
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@symm alpha*A["symm", 'L']*B))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symm alpha*A["symm", 'L']*B))
 :(Base.LinAlg.BLAS.symm('L','L',alpha,A,B))
 
-julia> macroexpand(:(SugarBLAS.@symm A*B["symm", 'U']))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symm A*B["symm", 'U']))
 :(Base.LinAlg.BLAS.symm('R','U',A,B))
 ```
 
@@ -662,13 +662,13 @@ Update `C` as `alpha*A*B + beta*C` or `alpha*B*A + beta*C` according to `"symm"`
 **Example**
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@symm! C -= alpha*A["symm", 'L']*B))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symm! C -= alpha*A["symm", 'L']*B))
 :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@symm! C = C - alpha*A["symm", 'U']*B))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symm! C = C - alpha*A["symm", 'U']*B))
 :(Base.LinAlg.BLAS.symm!('L','U',-alpha,A,B,1.0,C))
 
-julia> macroexpand(:(SugarBLAS.@symm! C = beta*C - alpha*A["symm", 'L']*B))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symm! C = beta*C - alpha*A["symm", 'L']*B))
 :(Base.LinAlg.BLAS.symm!('L','L',-alpha,A,B,beta,C))
 ```
 
@@ -683,10 +683,10 @@ is used (`'L'` for lower and `'U'` for upper).
 - `alpha*A[uplo]*x`
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@symv alpha*A['U']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symv alpha*A['U']*x))
 :(Base.LinAlg.BLAS.symv('U',alpha,A,x))
 
-julia> macroexpand(:(SugarBLAS.@symv A['L']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symv A['L']*x))
 :(Base.LinAlg.BLAS.symv('L',A,x))
 ```
 
@@ -702,12 +702,12 @@ Return updated y.
 - `y = beta*y ± alpha*A[uplo]*x`
 
 ```julia
-julia> macroexpand(:(SugarBLAS.@symv! y -= alpha*A['U']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symv! y -= alpha*A['U']*x))
 :(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,1.0,y))
 
-julia> macroexpand(:(SugarBLAS.@symv! y = y - alpha*A['L']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symv! y = y - alpha*A['L']*x))
 (Base.LinAlg.BLAS.symv!('L',-alpha,A,x,1.0,y))
 
-julia> macroexpand(:(SugarBLAS.@symv! y = beta*y + alpha*A['U']*x))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@symv! y = beta*y + alpha*A['U']*x))
 :(Base.LinAlg.BLAS.symv!('U',-alpha,A,x,beta,y))
 ```

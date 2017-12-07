@@ -109,11 +109,11 @@ macro match(expr, formula)
     exec = quote end
     push!(exec.args, :(symbols = Dict{Symbol, Any}()))
     aux3 = esc(:($expr))
-    push!(exec.args, :(success = $match(symbols, $aux3, parse($aux1))))
+    push!(exec.args, :(success = $match(symbols, $aux3, Meta.parse($aux1))))
     for var in vars
         aux2 = "$var"
         aux3 = esc(:($var))
-        push!(exec.args, :(success && ($aux3 = symbols[parse($aux2)])))
+        push!(exec.args, :(success && ($aux3 = symbols[Meta.parse($aux2)])))
     end
     push!(exec.args, :(success))
     exec
