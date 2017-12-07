@@ -110,8 +110,7 @@ Sugar for if-then-else expression. Beautiful for one liners.
 """
 macro case(expr::Expr)
     (expr.head == :block) || error("@case statement must be followed by `begin ... end`")
-    lines = []
-    lines = filter(line::Expr -> !is_metadata(line), expr.args)
+    lines = filter(line -> !is_metadata(line), expr.args)
     exec = construct_case_statement(lines)
     esc(Meta.parse(exec))
 end
@@ -120,7 +119,7 @@ end
 Filter metadata lines that often appear in Julia expressions
 """
 is_metadata(line::Expr) = line.head == :line #Needed for versions older than v0.7-DEV
-is_metadata(expr::LineNumberNode) = true
+is_metadata(::LineNumberNode) = true
 
 ###############
 # BLAS macros #
