@@ -5,10 +5,13 @@ Syntactic sugar for BLAS polynomials.
 """
 module SugarBLAS
 
+export ᵀ
 export  @blas!
 
 include("Match/Match.jl")
 using .Match
+
+struct ᵀ end
 
 """
 Negate a number, symbol or expression
@@ -27,11 +30,6 @@ Determine whether it is a substraction or not
 """
 substracts(expr) = false
 substracts(expr::Expr) = (expr.head == :call) & (expr.args[1] == :-)
-
-"""
-Sugarcoat '.isnull'
-"""
-isempty(nl::Nullable) = nl.isnull
 
 """
 Make dictionary containing the kwargs contents.
@@ -244,21 +242,21 @@ end
 """
     @syr!(expr)
 
-Rank-1 update of the symmetric matrix `A` with vector `x` as `alpha*x*x.' + A`.
+Rank-1 update of the symmetric matrix `A` with vector `x` as `alpha*x*xᵀ + A`.
 When left side has `A['U']` the upper triangle of `A` is updated (`'L'` for lower
 triangle). Return `A`.
 
 **Polynomials**
 
-- `A[uplo] ±= alpha*x*x.'`
+- `A[uplo] ±= alpha*x*xᵀ`
 """
 macro syr!(expr::Expr)
     unkeyword!(expr)
     expr = expand(expr)
     @match(expr, A[uplo] = right) || error("No match found")
     f = @case begin
-        @match(right, alpha*x*x.' + Y)  => identity
-        @match(right, Y - alpha*x*x.')  => neg
+        @match(right, alpha*x*xᵀ + Y)  => identity
+        @match(right, Y - alpha*x*xᵀ)  => neg
         otherwise                       => error("No match found")
     end
     (@match(Y, Y[uplo]) && (Y == A)) || (Y == A) || error("No match found")
@@ -269,12 +267,12 @@ end
     @syrk!(expr)
 
 Return either the upper triangle or the lower triangle, depending on
-(`'U'` or `'L'`), of `alpha*A*A.'` or `alpha*A.'*A`.
+(`'U'` or `'L'`), of `alpha*A*(A)ᵀ` or `alpha*(A)ᵀ*A`.
 
 **Polynomials**
 
-- `alpha*A*A.' uplo=ul`
-- `alpha*A.'*A uplo=ul`
+- `alpha*A*(A)ᵀ uplo=ul`
+- `alpha*(A)ᵀ*A uplo=ul`
 """
 macro syrk(expr::Expr, kwargs...)
     kwargs = kwargs_to_dict(kwargs)
@@ -284,8 +282,8 @@ macro syrk(expr::Expr, kwargs...)
         otherwise               => error("No match found")
     end
     trans = @case begin
-        @match(X, A.') && (Y == A)  => 'T'
-        @match(Y, A.') && (X == A)  => 'N'
+        @match(X, (A)ᵀ) && (Y == A)  => 'T'
+        @match(Y, (A)ᵀ) && (X == A)  => 'N'
         otherwise                   => error("No match found")
     end
     @call Base.LinAlg.BLAS.syrk(uplo,trans,f(alpha),A)
@@ -294,14 +292,14 @@ end
 """
     @syrk!(expr)
 
-Rank-k update of the symmetric matrix `C` as `alpha*A*A.' + beta*C` or
-`alpha*A.'*A + beta*C`. When the left hand side is`C['U']` the upper triangle of `C`
+Rank-k update of the symmetric matrix `C` as `alpha*A*(A)ᵀ + beta*C` or
+`alpha*(A)ᵀ*A + beta*C`. When the left hand side is`C['U']` the upper triangle of `C`
 is updated (`'L'` for lower triangle). Return `C`.
 
 **Polynomials**
 
-- `C[uplo] ±= alpha*A*A.'`
-- `C[uplo] = beta*C ± alpha*A.'*A`
+- `C[uplo] ±= alpha*A*(A)ᵀ`
+- `C[uplo] = beta*C ± alpha*(A)ᵀ*A`
 """
 macro syrk!(expr::Expr)
     unkeyword!(expr)
@@ -313,8 +311,8 @@ macro syrk!(expr::Expr)
         otherwise                       => error("No match found")
     end
     trans = @case begin
-        @match(X, A.') && (Y == A)  => 'T'
-        @match(Y, A.') && (X == A)  => 'N'
+        @match(X, (A)ᵀ) && (Y == A)  => 'T'
+        @match(Y, (A)ᵀ) && (X == A)  => 'N'
         otherwise                   => error("No match found")
     end
     @match(D, beta*D) || (beta = 1.0)
