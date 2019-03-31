@@ -250,21 +250,21 @@ julia> macroexpand(SugarBLAS, :(SugarBLAS.@ger! A += alpha*x*y'))
 
 ### *syr!*
 
-Rank-1 update of the symmetric matrix `A` with vector `x` as `alpha*x*x.' + A`.
+Rank-1 update of the symmetric matrix `A` with vector `x` as `alpha*x*(x)ᵀ + A`.
 When left side has `A['U']` the upper triangle of `A` is updated (`'L'` for lower
 triangle). Return `A`.
 
 **Polynomials**
 
-- `A[uplo] ±= alpha*x*x.'`
+- `A[uplo] ±= alpha*x*(x)ᵀ`
 
 **Example**
 
 ```julia
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] -= alpha*x*x.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] -= alpha*x*(x)ᵀ))
 :(Base.LinAlg.BLAS.syr!('U',-alpha,x,A))
 
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] += alpha*x*x.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] += alpha*x*(x)ᵀ))
 :(Base.LinAlg.BLAS.syr!('L',alpha,x,A))
 ```
 
@@ -272,48 +272,48 @@ julia> macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] += alpha*x*x.'))
 ### *syrk*
 
 Return either the upper triangle or the lower triangle, depending on
-(`'U'` or `'L'`), of `alpha*A*A.'` or `alpha*A.'*A`.
+(`'U'` or `'L'`), of `alpha*A*(A)ᵀ` or `alpha*(A)ᵀ*A`.
 
 **Polynomials**
 
-- `alpha*A*A.' uplo=ul`
-- `alpha*A.'*A uplo=ul`
+- `alpha*A*(A)ᵀ uplo=ul`
+- `alpha*(A)ᵀ*A uplo=ul`
 
 **Example**
 
 ```julia
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A*A.' uplo='U'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A*(A)ᵀ uplo='U'))
 :(Base.LinAlg.BLAS.syrk('U','N',alpha,A))
 
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A.'*A uplo='L'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*(A)ᵀ*A uplo='L'))
 :(Base.LinAlg.BLAS.syrk('L','T',alpha,A))
 ```
 
 
 ### *syrk!*
 
-Rank-k update of the symmetric matrix `C` as `alpha*A*A.' + beta*C` or
-`alpha*A.'*A + beta*C`. When the left hand side is`C['U']` the upper triangle of `C`
+Rank-k update of the symmetric matrix `C` as `alpha*A*(A)ᵀ + beta*C` or
+`alpha*(A)ᵀ*A + beta*C`. When the left hand side is`C['U']` the upper triangle of `C`
 is updated (`'L'` for lower triangle). Return `C`.
 
 **Polynomials**
 
-- `C[uplo] ±= alpha*A*A.'`
-- `C[uplo] = beta*C ± alpha*A.'*A`
+- `C[uplo] ±= alpha*A*(A)ᵀ`
+- `C[uplo] = beta*C ± alpha*(A)ᵀ*A`
 
 **Example**
 
 ```julia
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] -= alpha*A*A.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] -= alpha*A*(A)ᵀ))
 :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,1.0,C))
 
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = beta*C - alpha*A.'*A))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = beta*C - alpha*(A)ᵀ*A))
 :(Base.LinAlg.BLAS.syrk!('L','T',-alpha,A,beta,C))
 
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] += alpha*A*A.'))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] += alpha*A*(A)ᵀ))
 :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,1.0,C))
 
-julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = alpha*A.'*A + beta*C))
+julia> macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = alpha*(A)ᵀ*A + beta*C))
 :(Base.LinAlg.BLAS.syrk!('L','T',alpha,A,beta,C))
 ```
 

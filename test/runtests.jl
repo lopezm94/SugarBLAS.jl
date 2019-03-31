@@ -1,5 +1,5 @@
 using SugarBLAS
-using Base.Test
+using Test
 
 #scale!
 @test macroexpand(SugarBLAS, :(SugarBLAS.@scale! X *= a)) == :(scale!(a, X))
@@ -40,34 +40,34 @@ using Base.Test
 @test macroexpand(SugarBLAS, :(SugarBLAS.@ger! A = alpha*x*y' + A)) == :(Base.LinAlg.BLAS.ger!(alpha,x,y,A))
 
 #syr!
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] -= alpha*x*x.')) == :(Base.LinAlg.BLAS.syr!('U',-alpha,x,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] -= alpha*x*x.')) == :(Base.LinAlg.BLAS.syr!('L',-alpha,x,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] = A - alpha*x*x.')) == :(Base.LinAlg.BLAS.syr!('U',-alpha,x,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] = A - alpha*x*x.')) == :(Base.LinAlg.BLAS.syr!('L',-alpha,x,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] += alpha*x*x.')) == :(Base.LinAlg.BLAS.syr!('U',alpha,x,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] += alpha*x*x.')) == :(Base.LinAlg.BLAS.syr!('L',alpha,x,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] = alpha*x*x.' + A)) == :(Base.LinAlg.BLAS.syr!('U',alpha,x,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] = alpha*x*x.' + A)) == :(Base.LinAlg.BLAS.syr!('L',alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] -= alpha*x*(x)ᵀ)) == :(Base.LinAlg.BLAS.syr!('U',-alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] -= alpha*x*(x)ᵀ)) == :(Base.LinAlg.BLAS.syr!('L',-alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] = A - alpha*x*(x)ᵀ)) == :(Base.LinAlg.BLAS.syr!('U',-alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] = A - alpha*x*(x)ᵀ)) == :(Base.LinAlg.BLAS.syr!('L',-alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] += alpha*x*(x)ᵀ)) == :(Base.LinAlg.BLAS.syr!('U',alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] += alpha*x*(x)ᵀ)) == :(Base.LinAlg.BLAS.syr!('L',alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['U'] = alpha*x*(x)ᵀ + A)) == :(Base.LinAlg.BLAS.syr!('U',alpha,x,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syr! A['L'] = alpha*x*(x)ᵀ + A)) == :(Base.LinAlg.BLAS.syr!('L',alpha,x,A))
 
 #syrk
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A*A.' uplo='U')) == :(Base.LinAlg.BLAS.syrk('U','N',alpha,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A.'*A uplo='U')) == :(Base.LinAlg.BLAS.syrk('U','T',alpha,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A*A.' uplo='L')) == :(Base.LinAlg.BLAS.syrk('L','N',alpha,A))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A.'*A uplo='L')) == :(Base.LinAlg.BLAS.syrk('L','T',alpha,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A*(A)ᵀ uplo='U')) == :(Base.LinAlg.BLAS.syrk('U','N',alpha,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*(A)ᵀ*A uplo='U')) == :(Base.LinAlg.BLAS.syrk('U','T',alpha,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*A*(A)ᵀ uplo='L')) == :(Base.LinAlg.BLAS.syrk('L','N',alpha,A))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk alpha*(A)ᵀ*A uplo='L')) == :(Base.LinAlg.BLAS.syrk('L','T',alpha,A))
 
 #syrk!
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] -= alpha*A*A.')) == :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] -= alpha*A.'*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',-alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = C - alpha*A*A.')) == :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = C - alpha*A.'*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',-alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = beta*C - alpha*A*A.')) == :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,beta,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = beta*C - alpha*A.'*A)) == :(Base.LinAlg.BLAS.syrk!('L','T',-alpha,A,beta,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] += alpha*A*A.')) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] += alpha*A.'*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = alpha*A*A.' + C)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = C + alpha*A.'*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',alpha,A,1.0,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = alpha*A*A.' + beta*C)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,beta,C))
-@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = alpha*A.'*A + beta*C)) == :(Base.LinAlg.BLAS.syrk!('L','T',alpha,A,beta,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] -= alpha*A*(A)ᵀ)) == :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] -= alpha*(A)ᵀ*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',-alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = C - alpha*A*(A)ᵀ)) == :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = C - alpha*(A)ᵀ*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',-alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = beta*C - alpha*A*(A)ᵀ)) == :(Base.LinAlg.BLAS.syrk!('U','N',-alpha,A,beta,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = beta*C - alpha*(A)ᵀ*A)) == :(Base.LinAlg.BLAS.syrk!('L','T',-alpha,A,beta,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] += alpha*A*(A)ᵀ)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] += alpha*(A)ᵀ*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = alpha*A*(A)ᵀ + C)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = C + alpha*(A)ᵀ*A)) == :(Base.LinAlg.BLAS.syrk!('U','T',alpha,A,1.0,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['U'] = alpha*A*(A)ᵀ + beta*C)) == :(Base.LinAlg.BLAS.syrk!('U','N',alpha,A,beta,C))
+@test macroexpand(SugarBLAS, :(SugarBLAS.@syrk! C['L'] = alpha*(A)ᵀ*A + beta*C)) == :(Base.LinAlg.BLAS.syrk!('L','T',alpha,A,beta,C))
 
 #her!
 @test macroexpand(SugarBLAS, :(SugarBLAS.@her! A['U'] -= alpha*x*x')) == :(Base.LinAlg.BLAS.her!('U',-alpha,x,A))

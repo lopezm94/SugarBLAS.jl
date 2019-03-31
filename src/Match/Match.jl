@@ -23,7 +23,7 @@ end
 iscommutative(op::Symbol) = _iscommutative(Val{op})
 
 _iscommutative(::Type{Val{:(+)}}) = true
-_iscommutative{T<:Val}(::Type{T}) = false
+_iscommutative(::Type{T}) where T<:Val = false
 
 """
 Output true if dictionary 'd' has a key 's' with a different value than 'v'.
